@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Inmate Profile</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <section class="login-shell" id="loginShell">
+      <div class="login-card">
+        <h1>Inmate Profile</h1>
+        <p id="loginIntro">Sign in to continue.</p>
+
+        <form id="loginForm" class="login-form">
+          <label class="login-field">
+            <span>Username</span>
+            <input id="loginUsername" type="text" autocomplete="username" required>
+          </label>
+          <label class="login-field">
+            <span>Password</span>
+            <input id="loginPassword" type="password" autocomplete="current-password" required>
+          </label>
+          <button type="submit">Log In</button>
+        </form>
+
+        <form id="firstUserForm" class="login-form hidden">
+          <label class="login-field">
+            <span>Create Username</span>
+            <input id="firstUsername" type="text" autocomplete="username">
+          </label>
+          <label class="login-field">
+            <span>Create Password</span>
+            <input id="firstPassword" type="password" autocomplete="new-password">
+          </label>
+          <button type="submit">Create Super Admin</button>
+        </form>
+
+        <p class="message" id="loginMessage" role="status" aria-live="polite"></p>
+      </div>
+    </section>
+
+    <main class="app-shell hidden" id="appShell">
+      <header class="app-header">
+        <div>
+          <h1>Inmate Profile</h1>
+          <p>Inmate intelligence record management</p>
+        </div>
+        <div class="header-tools">
+          <div class="session-status" id="sessionStatus">Not signed in</div>
+          <button class="secondary" type="button" id="manageUsers">Users</button>
+          <button class="secondary" type="button" id="logoutButton">Log Out</button>
+          <div class="record-status" id="recordStatus">Record 1 of 1</div>
+        </div>
+      </header>
+
+      <section class="workspace" aria-label="Inmate profile form">
+        <form id="inmateForm" autocomplete="off">
+          <div class="top-row">
+            <label class="field inmate-id">
+              <span>Inmate ID</span>
+              <input id="inmateId" name="inmateId" type="text" inputmode="numeric" maxlength="7" required>
+            </label>
+          </div>
+
+          <div class="form-grid">
+            <label class="field name-field">
+              <span>First Name</span>
+              <input id="firstName" name="firstName" type="text" required>
+            </label>
+
+            <label class="field name-field">
+              <span>Middle Name</span>
+              <input id="middleName" name="middleName" type="text">
+            </label>
+
+            <label class="field name-field">
+              <span>Last Name</span>
+              <input id="lastName" name="lastName" type="text" required>
+            </label>
+
+            <label class="field alias-field">
+              <span>Alias "AKA"</span>
+              <input id="alias" name="alias" type="text">
+            </label>
+
+            <label class="field dob-field">
+              <span>DOB</span>
+              <input id="dob" name="dob" type="date">
+            </label>
+
+            <label class="field age-field">
+              <span>Age</span>
+              <input id="age" name="age" type="number" min="0" max="130" readonly>
+            </label>
+
+            <label class="field address-field">
+              <span>Address</span>
+              <input id="address" name="address" type="text">
+            </label>
+
+            <label class="field comment-field">
+              <span>Comment</span>
+              <textarea id="comment" name="comment" rows="5"></textarea>
+            </label>
+          </div>
+        </form>
+
+        <aside class="photo-strip" aria-label="Main mugshot preview">
+          <div class="photo-frame">
+            <img id="mainPreview" alt="Inmate mugshot preview">
+            <span id="mainPreviewText">No photo</span>
+          </div>
+          <button class="secondary" type="button" id="openIntelModal">Gang & Photos</button>
+        </aside>
+      </section>
+
+      <nav class="actions" aria-label="Record actions">
+        <button type="button" id="previousRecord">Previous</button>
+        <button type="button" id="nextRecord">Next</button>
+        <button type="button" id="newRecord" data-edit-only>New Inmate</button>
+        <button type="button" id="saveRecord" data-edit-only>Save Record</button>
+        <button type="button" id="updateRecord" data-edit-only>Update Record</button>
+        <button type="button" id="generatePdf">Generate PDF</button>
+      </nav>
+
+      <p class="message" id="message" role="status" aria-live="polite"></p>
+    </main>
+
+    <dialog id="intelDialog" class="intel-dialog">
+      <form method="dialog" class="modal-shell">
+        <header class="modal-header">
+          <div>
+            <h2>Gang Affiliation & Image Intel</h2>
+            <p id="modalPersonName">No inmate selected</p>
+          </div>
+          <button type="button" class="icon-button" id="closeModal" aria-label="Close modal">X</button>
+        </header>
+
+        <section class="modal-body">
+          <div class="intel-fields">
+            <label class="field">
+              <span>Gang Affiliation</span>
+              <input id="gangAffiliation" type="text">
+            </label>
+
+            <label class="field">
+              <span>Inmates Name</span>
+              <input id="personName" type="text">
+            </label>
+
+            <fieldset class="status-options">
+              <legend>Prison Status</legend>
+              <label>
+                <input id="inPrison" name="prisonStatus" type="radio" value="in">
+                <span>In prison</span>
+              </label>
+              <label>
+                <input id="outOfPrison" name="prisonStatus" type="radio" value="out">
+                <span>Out of prison</span>
+              </label>
+            </fieldset>
+          </div>
+
+          <div class="image-grid">
+            <article class="image-panel">
+              <div class="image-box">
+                <img id="frontFacePreview" alt="Front facial mugshot">
+                <span>No facial view photo</span>
+                <button class="remove-image" type="button" data-image-key="frontFace" data-edit-only aria-label="Remove facial view photo">X</button>
+              </div>
+              <label class="upload-button">
+                Facial View
+                <input id="frontFaceUpload" type="file" accept="image/*">
+              </label>
+            </article>
+
+            <article class="image-panel">
+              <div class="image-box">
+                <img id="rightFacePreview" alt="Right side face mugshot">
+                <span>No right side photo</span>
+                <button class="remove-image" type="button" data-image-key="rightFace" data-edit-only aria-label="Remove right side face photo">X</button>
+              </div>
+              <label class="upload-button">
+                Right Face
+                <input id="rightFaceUpload" type="file" accept="image/*">
+              </label>
+            </article>
+
+            <article class="image-panel">
+              <div class="image-box">
+                <img id="leftFacePreview" alt="Left side face mugshot">
+                <span>No left side photo</span>
+                <button class="remove-image" type="button" data-image-key="leftFace" data-edit-only aria-label="Remove left side face photo">X</button>
+              </div>
+              <label class="upload-button">
+                Left Face
+                <input id="leftFaceUpload" type="file" accept="image/*">
+              </label>
+            </article>
+
+            <article class="image-panel tattoo-panel">
+              <div class="tattoo-list" id="tattooList"></div>
+              <label class="upload-button">
+                Add Tattoo Pictures
+                <input id="tattooUpload" type="file" accept="image/*" multiple>
+              </label>
+            </article>
+          </div>
+        </section>
+
+        <footer class="modal-actions">
+          <button type="button" id="saveIntel" data-edit-only>Save Intel</button>
+        </footer>
+      </form>
+    </dialog>
+
+    <dialog id="usersDialog" class="users-dialog">
+      <div class="modal-shell">
+        <header class="modal-header">
+          <div>
+            <h2>User Access</h2>
+            <p>Create users and assign access level.</p>
+          </div>
+          <button type="button" class="icon-button" id="closeUsersModal" aria-label="Close users modal">X</button>
+        </header>
+
+        <section class="modal-body">
+          <form id="createUserForm" class="user-form">
+            <label class="login-field">
+              <span>Username</span>
+              <input id="newUsername" type="text" autocomplete="off">
+            </label>
+            <label class="login-field">
+              <span>Password</span>
+              <input id="newPassword" type="password" autocomplete="new-password">
+            </label>
+            <label class="login-field">
+              <span>Access</span>
+              <select id="newUserRole">
+                <option value="admin">Super Admin</option>
+                <option value="entry">Data Entry</option>
+                <option value="readonly">Read Only</option>
+              </select>
+            </label>
+            <button type="submit">Create User</button>
+          </form>
+
+          <div class="user-list" id="userList"></div>
+          <p class="message" id="userMessage" role="status" aria-live="polite"></p>
+        </section>
+      </div>
+    </dialog>
+
+    <section id="reportTemplate" class="report-template" aria-hidden="true"></section>
+
+    <script src="app.js"></script>
+  </body>
+</html>

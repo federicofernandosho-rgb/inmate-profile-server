@@ -60,14 +60,34 @@
             <div class="search-bar">
               <label>
                 <span class="visually-hidden">Search by Inmate ID</span>
-                <input id="searchInput" name="searchInput" type="text" inputmode="numeric" maxlength="6" placeholder="Search by Inmate ID">
+                <input id="searchInput" name="searchInput" type="text" inputmode="numeric" maxlength="7" placeholder="Search by Inmate ID">
               </label>
               <button id="searchButton" type="button">Search</button>
             </div>
-            <label class="field inmate-id centered">
+          </div>
+
+          <div class="id-status-row">
+            <label class="field inmate-id">
               <span>Inmate ID</span>
-              <input id="inmateId" name="inmateId" type="text" inputmode="numeric" maxlength="6" required>
+              <input id="inmateId" name="inmateId" type="text" inputmode="numeric" maxlength="7" required>
             </label>
+            <div class="status-block">
+              <fieldset class="status-options incarceration-status-field">
+                <legend>Incarceration Status</legend>
+                <label>
+                  <input id="incarcerationIn" name="incarcerationStatus" type="radio" value="in">
+                  <span>In prison</span>
+                </label>
+                <label>
+                  <input id="incarcerationOut" name="incarcerationStatus" type="radio" value="out">
+                  <span>Out of prison</span>
+                </label>
+              </fieldset>
+              <label class="field status-date-field hidden">
+                <span>Status Date</span>
+                <input id="statusDate" name="statusDate" type="date">
+              </label>
+            </div>
           </div>
 
           <div class="form-grid">
@@ -77,13 +97,13 @@
             </label>
 
             <label class="field name-field">
-              <span>Middle Name</span>
-              <input id="middleName" name="middleName" type="text">
+              <span>Last Name</span>
+              <input id="lastName" name="lastName" type="text" required>
             </label>
 
             <label class="field name-field">
-              <span>Last Name</span>
-              <input id="lastName" name="lastName" type="text" required>
+              <span>Middle Name</span>
+              <input id="middleName" name="middleName" type="text">
             </label>
 
             <label class="field alias-field">
@@ -110,6 +130,13 @@
               <span>Comment</span>
               <textarea id="comment" name="comment" rows="5"></textarea>
             </label>
+
+            <div class="history-section" id="mainHistorySection">
+              <h3>Status & Date History</h3>
+              <div class="history-timeline" id="mainHistoryTimeline">
+                <div class="history-empty">No status changes recorded.</div>
+              </div>
+            </div>
           </div>
         </form>
 
@@ -123,11 +150,15 @@
       </section>
 
       <nav class="actions" aria-label="Record actions">
-        <button type="button" id="previousRecord">Previous</button>
-        <button type="button" id="nextRecord">Next</button>
-        <button type="button" id="newRecord" data-edit-only>New Inmate</button>
-        <button type="button" id="saveRecord" data-edit-only>Save Record</button>
-        <button type="button" id="updateRecord" data-edit-only>Update Record</button>
+        <div class="actions-left">
+          <button type="button" id="newRecord" data-edit-only>New Inmate</button>
+          <button type="button" id="saveRecord" data-edit-only>Save Record</button>
+          <button type="button" id="updateRecord" data-edit-only>Update Record</button>
+        </div>
+        <div class="actions-center">
+          <button type="button" id="previousRecord">Previous</button>
+          <button type="button" id="nextRecord">Next</button>
+        </div>
         <button type="button" id="generatePdf">Generate PDF</button>
       </nav>
 
@@ -156,25 +187,7 @@
               <input id="personName" type="text" readonly>
             </label>
 
-            <fieldset class="status-options">
-              <legend>Prison Status</legend>
-              <label>
-                <input id="inPrison" name="prisonStatus" type="radio" value="in">
-                <span>In prison</span>
-              </label>
-              <label>
-                <input id="outOfPrison" name="prisonStatus" type="radio" value="out">
-                <span>Out of prison</span>
-              </label>
-              <label class="field hidden" id="admissionDateLabel" style="margin-top: 8px;">
-                <span>Admission Date</span>
-                <input id="admissionDate" type="date">
-              </label>
-              <label class="field hidden" id="dischargeDateLabel" style="margin-top: 8px;">
-                <span>Discharge Date</span>
-                <input id="dischargeDate" type="date">
-              </label>
-            </fieldset>
+
           </div>
 
           <div class="image-grid">

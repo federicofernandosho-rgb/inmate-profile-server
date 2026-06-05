@@ -50,7 +50,10 @@ const fields = {
   dob: document.querySelector("#dob"),
   age: document.querySelector("#age"),
   address: document.querySelector("#address"),
-  comment: document.querySelector("#comment")
+  comment: document.querySelector("#comment"),
+  incarcerationIn: document.querySelector("#incarcerationIn"),
+  incarcerationOut: document.querySelector("#incarcerationOut"),
+  statusDate: document.querySelector("#statusDate")
 };
 
 const searchInput = document.querySelector("#searchInput");
@@ -60,13 +63,8 @@ const intelDialog = document.querySelector("#intelDialog");
 const modalPersonName = document.querySelector("#modalPersonName");
 const gangAffiliation = document.querySelector("#gangAffiliation");
 const personName = document.querySelector("#personName");
-const inPrison = document.querySelector("#inPrison");
-const outOfPrison = document.querySelector("#outOfPrison");
-const admissionDateLabel = document.querySelector("#admissionDateLabel");
-const dischargeDateLabel = document.querySelector("#dischargeDateLabel");
-const admissionDate = document.querySelector("#admissionDate");
-const dischargeDate = document.querySelector("#dischargeDate");
 const historyTimeline = document.querySelector("#historyTimeline");
+const mainHistoryTimeline = document.querySelector("#mainHistoryTimeline");
 const mainPreview = document.querySelector("#mainPreview");
 const mainPreviewText = document.querySelector("#mainPreviewText");
 const frontFacePreview = document.querySelector("#frontFacePreview");
@@ -93,12 +91,12 @@ document.querySelector("#generatePdf").addEventListener("click", generatePdfRepo
 document.querySelector("#openIntelModal").addEventListener("click", openIntelModal);
 document.querySelector("#closeModal").addEventListener("click", () => intelDialog.close());
 document.querySelector("#saveIntel").addEventListener("click", saveIntelDetails);
-inPrison.addEventListener("change", toggleDateFieldsVisibility);
-outOfPrison.addEventListener("change", toggleDateFieldsVisibility);
 document.querySelectorAll(".remove-image").forEach(button => {
   button.addEventListener("click", () => removeFaceImage(button.dataset.imageKey));
 });
 document.querySelector("#frontFaceUpload").addEventListener("change", event => setImage(event, "frontFace"));
+fields.incarcerationIn.addEventListener("change", updateStatusDateVisibility);
+fields.incarcerationOut.addEventListener("change", updateStatusDateVisibility);
 document.querySelector("#rightFaceUpload").addEventListener("change", event => setImage(event, "rightFace"));
 document.querySelector("#leftFaceUpload").addEventListener("change", event => setImage(event, "leftFace"));
 document.querySelector("#tattooUpload").addEventListener("change", addTattooImages);
@@ -358,7 +356,7 @@ function applyAccessMode() {
   });
   fields.age.disabled = true;
 
-  [gangAffiliation, personName, inPrison, outOfPrison, admissionDate, dischargeDate].forEach(field => {
+  [gangAffiliation, personName].forEach(field => {
     field.disabled = readOnly;
   });
 
@@ -388,7 +386,10 @@ function getFormRecord() {
     age,
     address: fields.address.value.trim(),
     comment: fields.comment.value.trim(),
-    images: normalizeImages(current.images)
+    inPrison: fields.incarcerationIn.checked,
+    images: normalizeImages(current.images),
+    admissionDate: fields.incarcerationIn.checked ? fields.statusDate.value : "",
+    dischargeDate: fields.incarcerationOut.checked ? fields.statusDate.value : ""
   };
 }
 
@@ -396,15 +397,68 @@ function renderCurrentRecord() {
   const record = records[currentIndex] || emptyRecord();
 
   Object.entries(fields).forEach(([key, field]) => {
-    field.value = record[key] || "";
+    if (key === "incarcerationIn") {
+      field.checked = Boolean(record.inPrison);
+    } else if (key === "incarcerationOut") {
+      field.checked = !Boolean(record.inPrison);
+    } else if (key === "statusDate") {
+      field.value = record.inPrison ? record.admissionDate : record.dischargeDate || "";
+    } else {
+      field.value = record[key] || "";
+    }
   });
 
+  updateStatusDateVisibility();
   fields.age.value = calculateAge(record.dob);
 
   const mugshot = getMainMugshot(record);
   mainPreview.src = mugshot;
   mainPreviewText.textContent = mugshot ? "" : "No photo";
+  renderMainHistoryTimeline(record.statusHistory || []);
   updateStatus();
+}
+
+function getStatusChangeEvent(record, previousRecord) {
+  const selectedDate = record.inPrison ? record.admissionDate : record.dischargeDate;
+  if (!selectedDate) return null;
+
+  const currentType = record.inPrison ? "Admitted" : "Discharged";
+  const previousType = previousRecord?.inPrison ? "Admitted" : "Discharged";
+
+  if (previousRecord && currentType === previousType) {
+    const previousDate = record.inPrison ? previousRecord.admissionDate : previousRecord.dischargeDate;
+    if (selectedDate === previousDate) return null;
+  }
+
+  return {
+    type: currentType,
+    date: selectedDate,
+    timestamp: new Date().toISOString(),
+    username: currentUser?.username || "system"
+  };
+}
+
+function applyStatusHistory(record) {
+  const previousRecord = records[currentIndex] || emptyRecord();
+  const event = getStatusChangeEvent(record, previousRecord);
+  if (!event) return;
+
+  record.statusHistory = [...(previousRecord.statusHistory || []), event];
+}
+
+function getStatusDateLabel() {
+  return fields.incarcerationIn.checked ? "Admission Date" : "Discharge Date";
+}
+
+function updateStatusDateVisibility() {
+  const dateFieldWrapper = document.querySelector(".status-date-field");
+  if (!fields.incarcerationIn.checked && !fields.incarcerationOut.checked) {
+    dateFieldWrapper.classList.add("hidden");
+    return;
+  }
+
+  dateFieldWrapper.classList.remove("hidden");
+  dateFieldWrapper.querySelector("span").textContent = getStatusDateLabel();
 }
 
 function updateStatus() {
@@ -430,6 +484,8 @@ async function saveNewRecord() {
 
   const record = getFormRecord();
   if (!validateRecord(record)) return;
+
+  applyStatusHistory(record);
 
   const isBlankSlot = records.length === 1 && !records[0].inmateId && !records[0].firstName;
   const currentIsBlank = !records[currentIndex]?.inmateId && !records[currentIndex]?.firstName;
@@ -458,6 +514,8 @@ async function updateCurrentRecord() {
 
   const record = getFormRecord();
   if (!validateRecord(record)) return;
+
+  applyStatusHistory(record);
 
   const duplicate = records.some((item, index) => item.inmateId === record.inmateId && index !== currentIndex);
   if (duplicate) {
@@ -517,16 +575,6 @@ async function showNextRecord() {
   showMessage("Next record loaded.");
 }
 
-function toggleDateFieldsVisibility() {
-  if (inPrison.checked) {
-    admissionDateLabel.classList.remove("hidden");
-    dischargeDateLabel.classList.add("hidden");
-  } else {
-    admissionDateLabel.classList.add("hidden");
-    dischargeDateLabel.classList.remove("hidden");
-  }
-}
-
 function renderHistoryTimeline(history) {
   historyTimeline.innerHTML = "";
 
@@ -566,6 +614,40 @@ function renderHistoryTimeline(history) {
   });
 }
 
+function renderMainHistoryTimeline(history) {
+  mainHistoryTimeline.innerHTML = "";
+
+  if (!history || !history.length) {
+    const empty = document.createElement("div");
+    empty.className = "history-empty";
+    empty.textContent = "No status changes recorded.";
+    mainHistoryTimeline.append(empty);
+    return;
+  }
+
+  const sortedHistory = [...history].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+  sortedHistory.forEach(item => {
+    const el = document.createElement("div");
+    el.className = "timeline-item";
+
+    const content = document.createElement("div");
+    content.className = "timeline-content";
+
+    const header = document.createElement("div");
+    header.className = "timeline-header";
+    header.textContent = item.type;
+
+    const date = document.createElement("div");
+    date.className = "timeline-date";
+    date.textContent = item.date ? formatDate(item.date) : "No date set";
+
+    content.append(header, date);
+    el.append(content);
+    mainHistoryTimeline.append(el);
+  });
+}
+
 function openIntelModal() {
   const record = getFormRecord();
   const displayName = fullName(record) || "Unnamed inmate";
@@ -574,14 +656,8 @@ function openIntelModal() {
   personName.value = record.personName || displayName;
   // ensure the modal's person name reflects the main form and is not editable
   personName.readOnly = true;
-  inPrison.checked = Boolean(record.inPrison);
-  outOfPrison.checked = !record.inPrison;
   modalPersonName.textContent = displayName;
-  
-  admissionDate.value = record.admissionDate || "";
-  dischargeDate.value = record.dischargeDate || "";
 
-  toggleDateFieldsVisibility();
   renderHistoryTimeline(record.statusHistory || []);
 
   updateFacePreviews(record);
@@ -596,48 +672,9 @@ async function saveIntelDetails() {
   }
 
   const record = getFormRecord();
-  
-  const oldInPrison = Boolean(record.inPrison);
-  const oldAdmissionDate = record.admissionDate || "";
-  const oldDischargeDate = record.dischargeDate || "";
-
-  const newInPrison = inPrison.checked;
-  const newAdmissionDate = admissionDate.value;
-  const newDischargeDate = dischargeDate.value;
-
-  let changed = false;
-  let eventType = "";
-  let eventDate = "";
-
-  if (oldInPrison !== newInPrison) {
-    changed = true;
-    eventType = newInPrison ? "Admitted" : "Discharged";
-    eventDate = newInPrison ? newAdmissionDate : newDischargeDate;
-  } else if (newInPrison && oldAdmissionDate !== newAdmissionDate) {
-    changed = true;
-    eventType = "Admission Date Updated";
-    eventDate = newAdmissionDate;
-  } else if (!newInPrison && oldDischargeDate !== newDischargeDate) {
-    changed = true;
-    eventType = "Discharge Date Updated";
-    eventDate = newDischargeDate;
-  }
-
-  if (changed) {
-    if (!record.statusHistory) record.statusHistory = [];
-    record.statusHistory.push({
-      type: eventType,
-      date: eventDate,
-      timestamp: new Date().toISOString(),
-      username: currentUser?.username || "system"
-    });
-  }
 
   record.gangAffiliation = gangAffiliation.value.trim();
   record.personName = personName.value.trim();
-  record.inPrison = newInPrison;
-  record.admissionDate = newAdmissionDate;
-  record.dischargeDate = newDischargeDate;
 
   records[currentIndex] = record;
   await persistRecords();

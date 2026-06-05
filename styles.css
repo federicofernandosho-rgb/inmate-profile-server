@@ -245,6 +245,29 @@ select {
   margin-bottom: 26px;
 }
 
+.id-status-row {
+  display: grid;
+  width: min(760px, 100%);
+  grid-template-columns: minmax(0, 220px) minmax(0, 1fr);
+  gap: 22px;
+  align-items: start;
+  justify-content: center;
+}
+
+.status-block {
+  display: grid;
+  gap: 10px;
+}
+
+.inmate-id {
+  width: auto;
+  grid-template-columns: 140px minmax(0, 1fr);
+}
+
+.inmate-id input {
+  width: 10ch;
+}
+
 .search-bar {
   display: flex;
   align-items: center;
@@ -275,15 +298,7 @@ select {
   font-size: 13px;
 }
 
-.inmate-id.centered {
-  width: auto;
-}
 
-.inmate-id.centered input {
-  width: 118px;
-  text-align: center;
-  letter-spacing: 0.12em;
-}
 
 /* Make the age input narrower so three digits fit cleanly */
 #age {
@@ -314,12 +329,16 @@ select {
 }
 
 .inmate-id {
-  width: 100%;
+  width: min(320px, 100%);
   grid-template-columns: 140px minmax(0, 1fr);
 }
 
 .inmate-id span {
   text-align: left;
+}
+
+.inmate-id input {
+  width: 100%;
 }
 
 input,
@@ -642,13 +661,39 @@ input {
 }
 
 .actions {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
   gap: 10px;
   margin-top: 16px;
+  align-items: center;
+}
+
+.actions-left {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  grid-column: 1;
+}
+
+.actions-left button {
+  min-width: 0;
+}
+
+.actions-center {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: center;
+  grid-column: 2;
+}
+
+.actions-center button {
+  min-width: 0;
 }
 
 #generatePdf {
+  grid-column: 3;
+  justify-self: end;
   background: linear-gradient(135deg, #ff4b4b 0%, #ffffff 65%, #fba5a5 100%);
   color: #7a1111;
   border: 1px solid #d24949;
@@ -935,6 +980,11 @@ input {
   height: 17px;
 }
 
+.incarceration-status-field {
+  grid-column: 2;
+  grid-row: 1 / 3;
+}
+
 .upload-button input {
   position: absolute;
   width: 1px;
@@ -1034,6 +1084,10 @@ body.readonly-mode .upload-button {
     grid-template-columns: 1fr;
   }
 
+  .id-status-row {
+    grid-template-columns: 1fr;
+  }
+
   .field span {
     text-align: left;
   }
@@ -1056,6 +1110,19 @@ body.readonly-mode .upload-button {
   .actions {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .actions-left {
+    grid-column: 1;
+  }
+
+  .actions-center {
+    grid-column: 2;
+  }
+
+  #generatePdf {
+    grid-column: 2;
+    justify-self: end;
   }
 }
 
@@ -1329,6 +1396,69 @@ select {
   border: none;
   border-radius: 18px;
   padding: 12px 14px;
+}
+
+.history-section {
+  grid-column: 1 / -1;
+  margin-top: 24px;
+  padding: 20px;
+  background: rgba(248, 250, 252, 0.9);
+  border: 1px solid rgba(209, 213, 219, 0.6);
+  border-radius: 16px;
+}
+
+.history-section h3 {
+  margin: 0 0 14px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.history-timeline {
+  display: grid;
+  gap: 10px;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.timeline-item {
+  display: grid;
+  grid-template-columns: 4px 1fr;
+  gap: 12px;
+  padding: 12px;
+  background: #ffffff;
+  border-radius: 10px;
+  border-left: 4px solid #3d70b2;
+}
+
+.timeline-content {
+  display: grid;
+  gap: 4px;
+}
+
+.timeline-header {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--ink);
+}
+
+.timeline-date {
+  font-size: 12px;
+  color: #475569;
+}
+
+.timeline-meta {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.history-empty {
+  padding: 20px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 13px;
+  background: #ffffff;
+  border-radius: 10px;
 }
 
 .tattoo-list {

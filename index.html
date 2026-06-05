@@ -145,8 +145,8 @@
             </label>
 
             <label class="field">
-              <span>Inmates Name</span>
-              <input id="personName" type="text">
+              <span>Inmate Name</span>
+              <input id="personName" type="text" readonly>
             </label>
 
             <fieldset class="status-options">
@@ -158,6 +158,14 @@
               <label>
                 <input id="outOfPrison" name="prisonStatus" type="radio" value="out">
                 <span>Out of prison</span>
+              </label>
+              <label class="field hidden" id="admissionDateLabel" style="margin-top: 8px;">
+                <span>Admission Date</span>
+                <input id="admissionDate" type="date">
+              </label>
+              <label class="field hidden" id="dischargeDateLabel" style="margin-top: 8px;">
+                <span>Discharge Date</span>
+                <input id="dischargeDate" type="date">
               </label>
             </fieldset>
           </div>
@@ -206,6 +214,13 @@
                 <input id="tattooUpload" type="file" accept="image/*" multiple>
               </label>
             </article>
+          </div>
+
+          <div class="history-section" id="historySection">
+            <h3>Status & Date History</h3>
+            <div class="history-timeline" id="historyTimeline">
+              <div class="tattoo-empty">No status changes recorded.</div>
+            </div>
           </div>
         </section>
 

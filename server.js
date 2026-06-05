@@ -321,6 +321,14 @@ async function updateUserRole(userId, role) {
   await dbPool.execute("UPDATE users SET role = ? WHERE id = ?", [role, userId]);
 }
 
+function parseJsonSafe(str) {
+  try {
+    return JSON.parse(str);
+  } catch {
+    return [];
+  }
+}
+
 async function getRecords() {
   if (!dbPool) return readJson(RECORDS_FILE, defaultRecords());
 
@@ -328,7 +336,8 @@ async function getRecords() {
     SELECT
       id, inmate_id AS inmateId, first_name AS firstName, middle_name AS middleName,
       last_name AS lastName, alias, dob, age, address, comment,
-      gang_affiliation AS gangAffiliation, person_name AS personName, in_prison AS inPrison
+      gang_affiliation AS gangAffiliation, person_name AS personName, in_prison AS inPrison,
+      admission_date AS admissionDate, discharge_date AS dischargeDate, status_history AS statusHistory
     FROM inmates
     ORDER BY id
   `);
@@ -364,6 +373,9 @@ async function getRecords() {
       gangAffiliation: row.gangAffiliation || "",
       personName: row.personName || "",
       inPrison: Boolean(row.inPrison),
+      admissionDate: mysqlDate(row.admissionDate),
+      dischargeDate: mysqlDate(row.dischargeDate),
+      statusHistory: row.statusHistory ? parseJsonSafe(row.statusHistory) : [],
       images
     };
   });
@@ -384,8 +396,8 @@ async function saveRecords(records) {
       const [result] = await connection.execute(`
         INSERT INTO inmates (
           inmate_id, first_name, middle_name, last_name, alias, dob, age, address,
-          comment, gang_affiliation, person_name, in_prison
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          comment, gang_affiliation, person_name, in_prison, admission_date, discharge_date, status_history
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `, [
         record.inmateId || "",
         record.firstName || "",
@@ -398,7 +410,10 @@ async function saveRecords(records) {
         record.comment || "",
         record.gangAffiliation || "",
         record.personName || "",
-        record.inPrison ? 1 : 0
+        record.inPrison ? 1 : 0,
+        record.admissionDate || null,
+        record.dischargeDate || null,
+        JSON.stringify(record.statusHistory || [])
       ]);
 
       const inmateDbId = result.insertId;
@@ -652,6 +667,9 @@ function defaultRecords() {
     gangAffiliation: "",
     personName: "",
     inPrison: false,
+    admissionDate: "",
+    dischargeDate: "",
+    statusHistory: [],
     images: {
       frontFace: "",
       rightFace: "",

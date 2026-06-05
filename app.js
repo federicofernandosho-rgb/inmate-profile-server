@@ -14,6 +14,9 @@ const emptyRecord = () => ({
   gangAffiliation: "",
   personName: "",
   inPrison: false,
+  admissionDate: "",
+  dischargeDate: "",
+  statusHistory: [],
   images: {
     frontFace: "",
     rightFace: "",
@@ -56,6 +59,11 @@ const gangAffiliation = document.querySelector("#gangAffiliation");
 const personName = document.querySelector("#personName");
 const inPrison = document.querySelector("#inPrison");
 const outOfPrison = document.querySelector("#outOfPrison");
+const admissionDateLabel = document.querySelector("#admissionDateLabel");
+const dischargeDateLabel = document.querySelector("#dischargeDateLabel");
+const admissionDate = document.querySelector("#admissionDate");
+const dischargeDate = document.querySelector("#dischargeDate");
+const historyTimeline = document.querySelector("#historyTimeline");
 const mainPreview = document.querySelector("#mainPreview");
 const mainPreviewText = document.querySelector("#mainPreviewText");
 const frontFacePreview = document.querySelector("#frontFacePreview");
@@ -82,6 +90,8 @@ document.querySelector("#generatePdf").addEventListener("click", generatePdfRepo
 document.querySelector("#openIntelModal").addEventListener("click", openIntelModal);
 document.querySelector("#closeModal").addEventListener("click", () => intelDialog.close());
 document.querySelector("#saveIntel").addEventListener("click", saveIntelDetails);
+inPrison.addEventListener("change", toggleDateFieldsVisibility);
+outOfPrison.addEventListener("change", toggleDateFieldsVisibility);
 document.querySelectorAll(".remove-image").forEach(button => {
   button.addEventListener("click", () => removeFaceImage(button.dataset.imageKey));
 });
@@ -338,7 +348,7 @@ function applyAccessMode() {
   });
   fields.age.disabled = true;
 
-  [gangAffiliation, personName, inPrison, outOfPrison].forEach(field => {
+  [gangAffiliation, personName, inPrison, outOfPrison, admissionDate, dischargeDate].forEach(field => {
     field.disabled = readOnly;
   });
 
@@ -497,6 +507,55 @@ async function showNextRecord() {
   showMessage("Next record loaded.");
 }
 
+function toggleDateFieldsVisibility() {
+  if (inPrison.checked) {
+    admissionDateLabel.classList.remove("hidden");
+    dischargeDateLabel.classList.add("hidden");
+  } else {
+    admissionDateLabel.classList.add("hidden");
+    dischargeDateLabel.classList.remove("hidden");
+  }
+}
+
+function renderHistoryTimeline(history) {
+  historyTimeline.innerHTML = "";
+
+  if (!history || !history.length) {
+    const empty = document.createElement("div");
+    empty.className = "tattoo-empty";
+    empty.textContent = "No status changes recorded.";
+    historyTimeline.append(empty);
+    return;
+  }
+
+  const sortedHistory = [...history].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+  sortedHistory.forEach(item => {
+    const el = document.createElement("div");
+    el.className = "timeline-item";
+
+    const content = document.createElement("div");
+    content.className = "timeline-content";
+
+    const header = document.createElement("div");
+    header.className = "timeline-header";
+    header.textContent = item.type;
+
+    const date = document.createElement("div");
+    date.className = "timeline-date";
+    date.textContent = item.date ? formatDate(item.date) : "No date set";
+
+    const meta = document.createElement("div");
+    meta.className = "timeline-meta";
+    const changeTime = formatMediumDateTime(new Date(item.timestamp));
+    meta.textContent = `By ${escapeHtml(item.username)} on ${changeTime}`;
+
+    content.append(header, date, meta);
+    el.append(content);
+    historyTimeline.append(el);
+  });
+}
+
 function openIntelModal() {
   const record = getFormRecord();
   const displayName = fullName(record) || "Unnamed inmate";
@@ -506,6 +565,13 @@ function openIntelModal() {
   inPrison.checked = Boolean(record.inPrison);
   outOfPrison.checked = !record.inPrison;
   modalPersonName.textContent = displayName;
+  
+  admissionDate.value = record.admissionDate || "";
+  dischargeDate.value = record.dischargeDate || "";
+
+  toggleDateFieldsVisibility();
+  renderHistoryTimeline(record.statusHistory || []);
+
   updateFacePreviews(record);
   renderTattooList(record.images?.tattoos || []);
   intelDialog.showModal();
@@ -518,9 +584,48 @@ async function saveIntelDetails() {
   }
 
   const record = getFormRecord();
+  
+  const oldInPrison = Boolean(record.inPrison);
+  const oldAdmissionDate = record.admissionDate || "";
+  const oldDischargeDate = record.dischargeDate || "";
+
+  const newInPrison = inPrison.checked;
+  const newAdmissionDate = admissionDate.value;
+  const newDischargeDate = dischargeDate.value;
+
+  let changed = false;
+  let eventType = "";
+  let eventDate = "";
+
+  if (oldInPrison !== newInPrison) {
+    changed = true;
+    eventType = newInPrison ? "Admitted" : "Discharged";
+    eventDate = newInPrison ? newAdmissionDate : newDischargeDate;
+  } else if (newInPrison && oldAdmissionDate !== newAdmissionDate) {
+    changed = true;
+    eventType = "Admission Date Updated";
+    eventDate = newAdmissionDate;
+  } else if (!newInPrison && oldDischargeDate !== newDischargeDate) {
+    changed = true;
+    eventType = "Discharge Date Updated";
+    eventDate = newDischargeDate;
+  }
+
+  if (changed) {
+    if (!record.statusHistory) record.statusHistory = [];
+    record.statusHistory.push({
+      type: eventType,
+      date: eventDate,
+      timestamp: new Date().toISOString(),
+      username: currentUser?.username || "system"
+    });
+  }
+
   record.gangAffiliation = gangAffiliation.value.trim();
   record.personName = personName.value.trim();
-  record.inPrison = inPrison.checked;
+  record.inPrison = newInPrison;
+  record.admissionDate = newAdmissionDate;
+  record.dischargeDate = newDischargeDate;
 
   records[currentIndex] = record;
   await persistRecords();
@@ -680,6 +785,15 @@ function buildReportMarkup(record) {
     </figure>
   `).join("");
 
+  const history = record.statusHistory || [];
+  const historyMarkup = history.map(item => `
+    <div class="report-history-item">
+      <strong>${escapeHtml(item.type)}</strong>
+      <span>Date: ${item.date ? formatDate(item.date) : "Not set"}</span>
+      <span class="report-meta">By ${escapeHtml(item.username)} on ${formatMediumDateTime(new Date(item.timestamp))}</span>
+    </div>
+  `).join("");
+
   return `
     <div class="report-heading">
       <h1>Inmate Profile Report</h1>
@@ -694,6 +808,8 @@ function buildReportMarkup(record) {
       ${reportField("Address", record.address)}
       ${reportField("Gang Affiliation", record.gangAffiliation)}
       ${reportField("Currently in prison", record.inPrison ? "Yes" : "No")}
+      ${record.inPrison && record.admissionDate ? reportField("Admission Date", formatDate(record.admissionDate)) : ""}
+      ${!record.inPrison && record.dischargeDate ? reportField("Discharge Date", formatDate(record.dischargeDate)) : ""}
       <div class="report-field report-comment"><strong>Comment</strong>${escapeHtml(record.comment || "None")}</div>
     </div>
     <div class="report-images mugshot-report-images">
@@ -704,6 +820,10 @@ function buildReportMarkup(record) {
     <h3 class="report-section-title">Tattoo Pictures</h3>
     <div class="report-images tattoo-report-images">
       ${tattooMarkup || '<div class="report-photo tattoo-report-photo empty-photo"><strong>Tattoo Pictures</strong><span>No tattoo pictures added</span></div>'}
+    </div>
+    <h3 class="report-section-title">Status & Date History</h3>
+    <div class="report-history-list">
+      ${historyMarkup || '<div class="report-history-item" style="justify-content: center;"><span>No status changes recorded.</span></div>'}
     </div>
   `;
 }

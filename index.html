@@ -57,9 +57,16 @@
       <section class="workspace" aria-label="Inmate profile form">
         <form id="inmateForm" autocomplete="off">
           <div class="top-row">
-            <label class="field inmate-id">
+            <div class="search-bar">
+              <label>
+                <span class="visually-hidden">Search by Inmate ID</span>
+                <input id="searchInput" name="searchInput" type="text" inputmode="numeric" maxlength="6" placeholder="Search by Inmate ID">
+              </label>
+              <button id="searchButton" type="button">Search</button>
+            </div>
+            <label class="field inmate-id centered">
               <span>Inmate ID</span>
-              <input id="inmateId" name="inmateId" type="text" inputmode="numeric" maxlength="7" required>
+              <input id="inmateId" name="inmateId" type="text" inputmode="numeric" maxlength="6" required>
             </label>
           </div>
 
@@ -124,7 +131,7 @@
         <button type="button" id="generatePdf">Generate PDF</button>
       </nav>
 
-      <p class="message" id="message" role="status" aria-live="polite"></p>
+      <p class="message global-notice" id="message" role="status" aria-live="polite"></p>
     </main>
 
     <dialog id="intelDialog" class="intel-dialog">
@@ -146,7 +153,7 @@
 
             <label class="field">
               <span>Inmates Name</span>
-              <input id="personName" type="text">
+              <input id="personName" type="text" readonly>
             </label>
 
             <fieldset class="status-options">

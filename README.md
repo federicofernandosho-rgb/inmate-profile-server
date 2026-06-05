@@ -123,3 +123,78 @@ If NSSM is not installed in PATH, put `nssm.exe` here before running the install
 ```text
 tools\nssm\nssm.exe
 ```
+
+## Keep Changes & Deploy (recommended)
+
+To preserve your UI changes and deploy the app to your server, follow these steps on your development machine and on the target server.
+
+1. Commit your local changes locally (already done if you followed earlier steps):
+
+```bash
+git add -A
+git commit -m "Apply UI and modal improvements"
+```
+
+2. Push to your remote (replace `origin` and `main` if different):
+
+```bash
+git push origin main
+```
+
+3. On the production server, clone or pull the repo and install dependencies:
+
+```bash
+git clone <your-repo-url> /opt/inmate-profile || (cd /opt/inmate-profile && git pull)
+cd /opt/inmate-profile
+npm install --production
+```
+
+4. Start the app with a process manager so it restarts on crash or reboot.
+
+Using pm2 (recommended):
+
+```bash
+npm install -g pm2
+pm2 start server.js --name inmate-profile --env production -- PORT=3000
+pm2 save
+pm2 startup
+```
+
+Using systemd (example service unit): create `/etc/systemd/system/inmate-profile.service` with:
+
+```ini
+[Unit]
+Description=Inmate Profile Service
+After=network.target
+
+[Service]
+WorkingDirectory=/opt/inmate-profile
+ExecStart=/usr/bin/node server.js
+Restart=always
+Environment=PORT=3000
+Environment=NODE_ENV=production
+User=www-data
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Then enable and start:
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable inmate-profile
+sudo systemctl start inmate-profile
+sudo journalctl -u inmate-profile -f
+```
+
+5. Preserve runtime data: back up the `data/` folder regularly (it contains `users.json`, `records.json`, `secret.txt`).
+
+6. Rollbacks and updates: pull latest changes on the server and restart pm2 or systemd:
+
+```bash
+cd /opt/inmate-profile && git pull && npm install
+pm2 restart inmate-profile   # or: sudo systemctl restart inmate-profile
+```
+
+If you want, I can also create a small `deploy.sh` script to automate steps 3–6. Tell me if you'd like that.

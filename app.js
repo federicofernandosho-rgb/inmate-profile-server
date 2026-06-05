@@ -53,6 +53,9 @@ const fields = {
   comment: document.querySelector("#comment")
 };
 
+const searchInput = document.querySelector("#searchInput");
+const searchButton = document.querySelector("#searchButton");
+
 const intelDialog = document.querySelector("#intelDialog");
 const modalPersonName = document.querySelector("#modalPersonName");
 const gangAffiliation = document.querySelector("#gangAffiliation");
@@ -99,6 +102,13 @@ document.querySelector("#frontFaceUpload").addEventListener("change", event => s
 document.querySelector("#rightFaceUpload").addEventListener("change", event => setImage(event, "rightFace"));
 document.querySelector("#leftFaceUpload").addEventListener("change", event => setImage(event, "leftFace"));
 document.querySelector("#tattooUpload").addEventListener("change", addTattooImages);
+searchButton.addEventListener("click", handleSearch);
+searchInput.addEventListener("keydown", event => {
+  if (event.key === "Enter") {
+    event.preventDefault();
+    handleSearch();
+  }
+});
 fields.dob.addEventListener("change", setAgeFromDob);
 fields.dob.addEventListener("input", setAgeFromDob);
 
@@ -437,7 +447,7 @@ async function saveNewRecord() {
 
   await persistRecords();
   renderCurrentRecord();
-  showMessage("Inmate record saved.");
+  showMessage("Inmate record saved.", "success");
 }
 
 async function updateCurrentRecord() {
@@ -458,7 +468,7 @@ async function updateCurrentRecord() {
   records[currentIndex] = record;
   await persistRecords();
   renderCurrentRecord();
-  showMessage("Inmate record updated.");
+  showMessage("Inmate record updated.", "success");
 }
 
 async function createNewRecord() {
@@ -562,6 +572,8 @@ function openIntelModal() {
 
   gangAffiliation.value = record.gangAffiliation || "";
   personName.value = record.personName || displayName;
+  // ensure the modal's person name reflects the main form and is not editable
+  personName.readOnly = true;
   inPrison.checked = Boolean(record.inPrison);
   outOfPrison.checked = !record.inPrison;
   modalPersonName.textContent = displayName;
@@ -935,8 +947,53 @@ function fullName(record) {
   return [record.firstName, record.middleName, record.lastName].filter(Boolean).join(" ");
 }
 
-function showMessage(text) {
+function showMessage(text, type = "info", duration = 4000) {
+  // display message with type class
   message.textContent = text;
+  message.classList.remove("message-success", "message-error", "message-info");
+  message.classList.add(`message-${type}`);
+
+  // clear any previous hide timer
+  if (message._timeout) {
+    clearTimeout(message._timeout);
+    message._timeout = null;
+  }
+
+  // auto-hide for non-error messages
+  if (type === "success" || type === "info") {
+    message.style.opacity = "1";
+    message._timeout = setTimeout(() => {
+      // fade then clear
+      message.style.opacity = "0";
+      setTimeout(() => {
+        message.textContent = "";
+        message.classList.remove("message-success", "message-error", "message-info");
+        message.style.opacity = "";
+      }, 220);
+    }, duration);
+  } else {
+    // keep error messages visible until next message
+    message.style.opacity = "1";
+  }
+}
+
+function handleSearch(event) {
+  if (event && event.preventDefault) event.preventDefault();
+  const lookupId = (searchInput.value || "").trim();
+  if (!lookupId) {
+    showMessage("Enter an Inmate ID to search.");
+    return;
+  }
+
+  const matchIndex = records.findIndex(record => record.inmateId === lookupId);
+  if (matchIndex === -1) {
+    showMessage(`No inmate record found for ID ${lookupId}.`);
+    return;
+  }
+
+  currentIndex = matchIndex;
+  renderCurrentRecord();
+  showMessage(`Loaded inmate ${lookupId}.`);
 }
 
 function escapeHtml(value) {

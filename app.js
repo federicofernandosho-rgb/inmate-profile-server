@@ -60,10 +60,6 @@ const searchInput = document.querySelector("#searchInput");
 const searchButton = document.querySelector("#searchButton");
 
 const intelDialog = document.querySelector("#intelDialog");
-const modalPersonName = document.querySelector("#modalPersonName");
-const gangAffiliation = document.querySelector("#gangAffiliation");
-const personName = document.querySelector("#personName");
-const historyTimeline = document.querySelector("#historyTimeline");
 const mainHistoryTimeline = document.querySelector("#mainHistoryTimeline");
 const mainPreview = document.querySelector("#mainPreview");
 const mainPreviewText = document.querySelector("#mainPreviewText");
@@ -356,9 +352,7 @@ function applyAccessMode() {
   });
   fields.age.disabled = true;
 
-  [gangAffiliation, personName].forEach(field => {
-    field.disabled = readOnly;
-  });
+  // Modal fields removed; no modal text inputs to toggle.
 
   document.querySelectorAll("[data-edit-only]").forEach(element => {
     element.disabled = readOnly;
@@ -575,44 +569,7 @@ async function showNextRecord() {
   showMessage("Next record loaded.");
 }
 
-function renderHistoryTimeline(history) {
-  historyTimeline.innerHTML = "";
-
-  if (!history || !history.length) {
-    const empty = document.createElement("div");
-    empty.className = "tattoo-empty";
-    empty.textContent = "No status changes recorded.";
-    historyTimeline.append(empty);
-    return;
-  }
-
-  const sortedHistory = [...history].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-
-  sortedHistory.forEach(item => {
-    const el = document.createElement("div");
-    el.className = "timeline-item";
-
-    const content = document.createElement("div");
-    content.className = "timeline-content";
-
-    const header = document.createElement("div");
-    header.className = "timeline-header";
-    header.textContent = item.type;
-
-    const date = document.createElement("div");
-    date.className = "timeline-date";
-    date.textContent = item.date ? formatDate(item.date) : "No date set";
-
-    const meta = document.createElement("div");
-    meta.className = "timeline-meta";
-    const changeTime = formatMediumDateTime(new Date(item.timestamp));
-    meta.textContent = `By ${escapeHtml(item.username)} on ${changeTime}`;
-
-    content.append(header, date, meta);
-    el.append(content);
-    historyTimeline.append(el);
-  });
-}
+// Modal history timeline removed; history rendered only in main view via `renderMainHistoryTimeline`.
 
 function renderMainHistoryTimeline(history) {
   mainHistoryTimeline.innerHTML = "";
@@ -650,16 +607,7 @@ function renderMainHistoryTimeline(history) {
 
 function openIntelModal() {
   const record = getFormRecord();
-  const displayName = fullName(record) || "Unnamed inmate";
-
-  gangAffiliation.value = record.gangAffiliation || "";
-  personName.value = record.personName || displayName;
-  // ensure the modal's person name reflects the main form and is not editable
-  personName.readOnly = true;
-  modalPersonName.textContent = displayName;
-
-  renderHistoryTimeline(record.statusHistory || []);
-
+  // Modal now focuses on image intel only
   updateFacePreviews(record);
   renderTattooList(record.images?.tattoos || []);
   intelDialog.showModal();
@@ -673,14 +621,12 @@ async function saveIntelDetails() {
 
   const record = getFormRecord();
 
-  record.gangAffiliation = gangAffiliation.value.trim();
-  record.personName = personName.value.trim();
-
+  // Save current record (images are updated via file inputs already)
   records[currentIndex] = record;
   await persistRecords();
   renderCurrentRecord();
   intelDialog.close();
-  showMessage("Gang and image intel saved.");
+  showMessage("Image intel saved.");
 }
 
 async function removeFaceImage(key) {

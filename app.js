@@ -10,6 +10,7 @@ const emptyRecord = () => ({
   dob: "",
   age: "",
   address: "",
+  affiliation: "",
   comment: "",
   gangAffiliation: "",
   personName: "",
@@ -27,6 +28,7 @@ const emptyRecord = () => ({
 
 let records = [];
 let currentIndex = 0;
+let isNewRecord = false;
 let currentUser = null;
 let authToken = sessionStorage.getItem(SESSION_KEY) || "";
 
@@ -50,6 +52,7 @@ const fields = {
   dob: document.querySelector("#dob"),
   age: document.querySelector("#age"),
   address: document.querySelector("#address"),
+  affiliation: document.querySelector("#affiliation"),
   comment: document.querySelector("#comment"),
   incarcerationIn: document.querySelector("#incarcerationIn"),
   incarcerationOut: document.querySelector("#incarcerationOut"),
@@ -82,7 +85,9 @@ document.querySelector("#previousRecord").addEventListener("click", showPrevious
 document.querySelector("#nextRecord").addEventListener("click", showNextRecord);
 document.querySelector("#newRecord").addEventListener("click", createNewRecord);
 document.querySelector("#saveRecord").addEventListener("click", saveNewRecord);
+document.querySelector("#cancelRecord").addEventListener("click", cancelNewRecord);
 document.querySelector("#updateRecord").addEventListener("click", updateCurrentRecord);
+document.querySelector("#deleteRecord").addEventListener("click", deleteRecord);
 document.querySelector("#generatePdf").addEventListener("click", generatePdfReport);
 document.querySelector("#openIntelModal").addEventListener("click", openIntelModal);
 document.querySelector("#closeModal").addEventListener("click", () => intelDialog.close());
@@ -96,6 +101,22 @@ fields.incarcerationOut.addEventListener("change", updateStatusDateVisibility);
 document.querySelector("#rightFaceUpload").addEventListener("change", event => setImage(event, "rightFace"));
 document.querySelector("#leftFaceUpload").addEventListener("change", event => setImage(event, "leftFace"));
 document.querySelector("#tattooUpload").addEventListener("change", addTattooImages);
+document.querySelector("#tattooModalClose").addEventListener("click", closeTattooModal);
+document.querySelector("#zoomInBtn").addEventListener("click", () => zoomTattoo("in"));
+document.querySelector("#zoomOutBtn").addEventListener("click", () => zoomTattoo("out"));
+document.querySelector("#zoomResetBtn").addEventListener("click", resetTattooZoom);
+document.querySelector("#tattooModal").addEventListener("click", (e) => {
+  if (e.target.id === "tattooModal") closeTattooModal();
+});
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") {
+    if (document.getElementById("tattooModal").open) {
+      closeTattooModal();
+    } else if (isNewRecord) {
+      cancelNewRecord();
+    }
+  }
+});
 searchButton.addEventListener("click", handleSearch);
 searchInput.addEventListener("keydown", event => {
   if (event.key === "Enter") {
@@ -163,6 +184,7 @@ async function showApp() {
   appShell.classList.remove("hidden");
   sessionStatus.textContent = `${currentUser.username} - ${roleLabel(currentUser.role)}`;
   manageUsersButton.classList.toggle("hidden", !canManageUsers());
+  document.querySelector("#deleteRecord").classList.toggle("hidden", !canManageUsers());
   applyAccessMode();
   await loadRecordsFromBackend();
   await migrateLegacyRecordsIfNeeded();
@@ -174,6 +196,7 @@ async function handleLogin(event) {
   loginMessage.textContent = "";
 
   try {
+    console.log("Attempting login...");
     const result = await apiFetch("/api/login", {
       auth: false,
       method: "POST",
@@ -182,10 +205,14 @@ async function handleLogin(event) {
         password: document.querySelector("#loginPassword").value
       }
     });
+    console.log("Login successful, setting session...");
     setSession(result);
+    console.log("Session set, showing app...");
     loginForm.reset();
     await showApp();
+    console.log("App shown successfully");
   } catch (error) {
+    console.error("Login failed:", error);
     loginMessage.textContent = error.message;
   }
 }
@@ -410,6 +437,28 @@ function renderCurrentRecord() {
   mainPreviewText.textContent = mugshot ? "" : "No photo";
   renderMainHistoryTimeline(record.statusHistory || []);
   updateStatus();
+
+  // Hide Update, Next, Previous, New buttons when creating a new record
+  // Show Cancel button when creating a new record
+  const updateButton = document.querySelector("#updateRecord");
+  const nextButton = document.querySelector("#nextRecord");
+  const prevButton = document.querySelector("#previousRecord");
+  const newButton = document.querySelector("#newRecord");
+  const cancelButton = document.querySelector("#cancelRecord");
+  
+  if (isNewRecord) {
+    updateButton.classList.add("hidden");
+    nextButton.classList.add("hidden");
+    prevButton.classList.add("hidden");
+    newButton.classList.add("hidden");
+    cancelButton.classList.remove("hidden");
+  } else {
+    updateButton.classList.remove("hidden");
+    nextButton.classList.remove("hidden");
+    prevButton.classList.remove("hidden");
+    newButton.classList.remove("hidden");
+    cancelButton.classList.add("hidden");
+  }
 }
 
 function getStatusChangeEvent(record, previousRecord) {
@@ -495,6 +544,7 @@ async function saveNewRecord() {
     currentIndex = records.length - 1;
   }
 
+  isNewRecord = false;
   await persistRecords();
   renderCurrentRecord();
   showMessage("Inmate record saved.", "success");
@@ -523,6 +573,47 @@ async function updateCurrentRecord() {
   showMessage("Inmate record updated.", "success");
 }
 
+async function deleteRecord() {
+  if (!canManageUsers()) {
+    showMessage("Only admins can delete records.");
+    return;
+  }
+
+  if (records.length === 0) {
+    showMessage("No records to delete.");
+    return;
+  }
+
+  const record = records[currentIndex];
+  const name = [record.firstName, record.lastName].filter(Boolean).join(" ") || record.inmateId || "this record";
+
+  if (!confirm(`Are you sure you want to delete the record for "${name}"? This cannot be undone.`)) {
+    return;
+  }
+
+  try {
+    const result = await apiFetch("/api/records", {
+      method: "DELETE",
+      body: { index: currentIndex }
+    });
+
+    records = result.records;
+
+    if (records.length === 0) {
+      records = [emptyRecord()];
+      currentIndex = 0;
+    } else {
+      currentIndex = Math.min(currentIndex, records.length - 1);
+    }
+
+    isNewRecord = false;
+    renderCurrentRecord();
+    showMessage("Inmate record deleted.", "success");
+  } catch (error) {
+    showMessage(error.message || "Failed to delete record.", "error");
+  }
+}
+
 async function createNewRecord() {
   if (!canEdit()) {
     showMessage("Read-only users cannot create records.");
@@ -531,10 +622,30 @@ async function createNewRecord() {
 
   records.push(emptyRecord());
   currentIndex = records.length - 1;
-  await persistRecords();
+  isNewRecord = true;
+  // Don't persist yet - wait for save
   renderCurrentRecord();
   showMessage("Ready for a new inmate record.");
   fields.inmateId.focus();
+}
+
+function cancelNewRecord() {
+  if (!isNewRecord) return;
+  
+  // Remove the unsaved record from the local array
+  records.splice(currentIndex, 1);
+  
+  // Adjust current index
+  if (currentIndex > 0) {
+    currentIndex--;
+  } else if (records.length === 0) {
+    records.push(emptyRecord());
+    currentIndex = 0;
+  }
+  
+  isNewRecord = false;
+  renderCurrentRecord();
+  showMessage("New inmate cancelled.", "info");
 }
 
 async function showPreviousRecord() {
@@ -667,16 +778,75 @@ function addTattooImages(event) {
   const files = Array.from(event.target.files);
   if (!files.length) return;
 
-  Promise.all(files.map(fileToDataUrl)).then(async images => {
+  const pendingImages = [];
+  let currentFileIndex = 0;
+
+  const processFilesSequentially = async () => {
+    for (const file of files) {
+      const dataUrl = await fileToDataUrl(file);
+      const description = await showTattooDescriptionModal(file.name, dataUrl);
+      pendingImages.push({ src: dataUrl, description });
+    }
+
     const record = getFormRecord();
     record.images = normalizeImages(record.images);
-    record.images.tattoos = [...(record.images.tattoos || []), ...images];
+    record.images.tattoos = [...(record.images.tattoos || []), ...pendingImages];
     records[currentIndex] = record;
     await persistRecords();
     renderTattooList(record.images.tattoos);
-  });
+  };
 
+  processFilesSequentially();
   event.target.value = "";
+}
+
+function showTattooDescriptionModal(fileName, dataUrl, currentDescription = "") {
+  return new Promise(resolve => {
+    const overlay = document.getElementById("tattooDescModal");
+    const img = document.getElementById("tattooDescPreview");
+    const input = document.getElementById("tattooDescInput");
+    const fileNameEl = document.getElementById("tattooDescFileName");
+    const saveBtn = document.getElementById("tattooDescSave");
+    const cancelBtn = document.getElementById("tattooDescCancel");
+
+    img.src = dataUrl;
+    fileNameEl.textContent = fileName;
+    input.value = currentDescription;
+
+    const handleSave = () => {
+      overlay.close();
+      cleanup();
+      resolve(input.value.trim() || "");
+    };
+
+    const handleCancel = () => {
+      overlay.close();
+      cleanup();
+      resolve(currentDescription);
+    };
+
+    const handleKeydown = (e) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        handleSave();
+      } else if (e.key === "Escape") {
+        handleCancel();
+      }
+    };
+
+    const cleanup = () => {
+      saveBtn.removeEventListener("click", handleSave);
+      cancelBtn.removeEventListener("click", handleCancel);
+      overlay.removeEventListener("keydown", handleKeydown);
+    };
+
+    saveBtn.addEventListener("click", handleSave);
+    cancelBtn.addEventListener("click", handleCancel);
+    overlay.addEventListener("keydown", handleKeydown);
+
+    overlay.showModal();
+    setTimeout(() => input.focus(), 10);
+  });
 }
 
 function renderTattooList(tattoos) {
@@ -690,13 +860,18 @@ function renderTattooList(tattoos) {
     return;
   }
 
-  tattoos.forEach((src, index) => {
+  tattoos.forEach((tattoo, index) => {
+    const src = typeof tattoo === "string" ? tattoo : tattoo.src;
+    const description = typeof tattoo === "string" ? "" : (tattoo.description || "");
+
     const thumb = document.createElement("div");
     thumb.className = "tattoo-thumb";
 
     const img = document.createElement("img");
     img.src = src;
-    img.alt = `Tattoo picture ${index + 1}`;
+    img.alt = description || `Tattoo picture ${index + 1}`;
+    img.style.cursor = "pointer";
+    img.addEventListener("click", () => openTattooModal(index));
 
     const remove = document.createElement("button");
     remove.type = "button";
@@ -705,9 +880,37 @@ function renderTattooList(tattoos) {
     remove.setAttribute("aria-label", `Remove tattoo picture ${index + 1}`);
     remove.addEventListener("click", () => removeTattoo(index));
 
-    thumb.append(img, remove);
+    const descEl = document.createElement("p");
+    descEl.className = "tattoo-desc";
+    descEl.textContent = description || "No description";
+    if (canEdit()) {
+      descEl.style.cursor = "pointer";
+      descEl.style.textDecoration = "underline dotted";
+      descEl.title = "Click to edit description";
+      descEl.addEventListener("click", () => editTattooDescription(index));
+    }
+
+    thumb.append(img, remove, descEl);
     tattooList.append(thumb);
   });
+}
+
+async function editTattooDescription(index) {
+  if (!canEdit()) return;
+
+  const record = getFormRecord();
+  const tattoos = record.images?.tattoos || [];
+  const tattoo = tattoos[index];
+  const src = typeof tattoo === "string" ? tattoo : tattoo.src;
+  const currentDesc = typeof tattoo === "string" ? "" : (tattoo.description || "");
+
+  const newDesc = await showTattooDescriptionModal("Edit description", src, currentDesc);
+
+  record.images = normalizeImages(record.images);
+  record.images.tattoos[index] = { src, description: newDesc };
+  records[currentIndex] = record;
+  await persistRecords();
+  renderTattooList(record.images.tattoos);
 }
 
 async function removeTattoo(index) {
@@ -720,6 +923,126 @@ async function removeTattoo(index) {
   await persistRecords();
   renderTattooList(record.images.tattoos);
 }
+
+let tattooZoomLevel = 1;
+let tattooPanX = 0;
+let tattooPanY = 0;
+let tattooIsDragging = false;
+let tattooDragStart = { x: 0, y: 0 };
+let tattooDragOffset = { x: 0, y: 0 };
+
+function openTattooModal(index) {
+  const record = getFormRecord();
+  const tattoos = record.images?.tattoos || [];
+  const tattoo = tattoos[index];
+  const src = typeof tattoo === "string" ? tattoo : tattoo.src;
+  const description = typeof tattoo === "string" ? "" : (tattoo.description || "");
+
+  const modal = document.getElementById("tattooModal");
+  const img = document.getElementById("tattooModalImg");
+  const desc = document.getElementById("tattooModalDesc");
+
+  img.src = src;
+  img.alt = description || `Tattoo picture ${index + 1}`;
+  desc.textContent = description || "No description";
+  tattooZoomLevel = 1;
+  tattooPanX = 0;
+  tattooPanY = 0;
+  updateTattooTransform(img);
+  modal.showModal();
+  document.body.classList.add("modal-open");
+}
+
+function closeTattooModal() {
+  const modal = document.getElementById("tattooModal");
+  modal.close();
+  document.body.classList.remove("modal-open");
+}
+
+function updateTattooTransform(img) {
+  img.style.transform = `translate(${tattooPanX}px, ${tattooPanY}px) scale(${tattooZoomLevel})`;
+}
+
+function zoomTattoo(direction) {
+  const img = document.getElementById("tattooModalImg");
+  if (direction === "in") {
+    tattooZoomLevel = Math.min(tattooZoomLevel + 0.25, 5);
+  } else {
+    tattooZoomLevel = Math.max(tattooZoomLevel - 0.25, 0.5);
+  }
+  if (tattooZoomLevel === 1) {
+    tattooPanX = 0;
+    tattooPanY = 0;
+  }
+  updateTattooTransform(img);
+}
+
+function resetTattooZoom() {
+  const img = document.getElementById("tattooModalImg");
+  tattooZoomLevel = 1;
+  tattooPanX = 0;
+  tattooPanY = 0;
+  updateTattooTransform(img);
+}
+
+function initTattooPan() {
+  const wrapper = document.querySelector(".tattoo-modal-img-wrapper");
+  const img = document.getElementById("tattooModalImg");
+
+  wrapper.addEventListener("mousedown", (e) => {
+    if (tattooZoomLevel <= 1) return;
+    e.preventDefault();
+    tattooIsDragging = true;
+    tattooDragStart = { x: e.clientX, y: e.clientY };
+    tattooDragOffset = { x: tattooPanX, y: tattooPanY };
+    wrapper.classList.add("panning");
+  });
+
+  document.addEventListener("mousemove", (e) => {
+    if (!tattooIsDragging) return;
+    e.preventDefault();
+    const dx = e.clientX - tattooDragStart.x;
+    const dy = e.clientY - tattooDragStart.y;
+    tattooPanX = tattooDragOffset.x + dx;
+    tattooPanY = tattooDragOffset.y + dy;
+    updateTattooTransform(img);
+  });
+
+  document.addEventListener("mouseup", () => {
+    if (!tattooIsDragging) return;
+    tattooIsDragging = false;
+    wrapper.classList.remove("panning");
+  });
+
+  img.addEventListener("click", (e) => {
+    if (Math.abs(tattooPanX - tattooDragOffset.x) > 5 || Math.abs(tattooPanY - tattooDragOffset.y) > 5) {
+      return;
+    }
+    if (tattooZoomLevel < 2) {
+      tattooZoomLevel = 2;
+    } else if (tattooZoomLevel < 3) {
+      tattooZoomLevel = 3;
+    } else {
+      tattooZoomLevel = 1;
+      tattooPanX = 0;
+      tattooPanY = 0;
+    }
+    updateTattooTransform(img);
+  });
+
+  wrapper.addEventListener("wheel", (e) => {
+    e.preventDefault();
+    const delta = e.deltaY > 0 ? -0.15 : 0.15;
+    tattooZoomLevel = Math.min(Math.max(tattooZoomLevel + delta, 0.5), 5);
+    if (tattooZoomLevel <= 1) {
+      tattooPanX = 0;
+      tattooPanY = 0;
+    }
+    updateTattooTransform(img);
+  }, { passive: false });
+}
+
+initTattooPan();
 
 function setAgeFromDob() {
   const dob = parseDateInput(fields.dob.value);
@@ -773,12 +1096,17 @@ function generatePdfReport() {
 function buildReportMarkup(record) {
   const tattoos = record.images?.tattoos || [];
   const generatedAt = new Date();
-  const tattooMarkup = tattoos.map((src, index) => `
+  const tattooMarkup = tattoos.map((tattoo, index) => {
+    const src = typeof tattoo === "string" ? tattoo : tattoo.src;
+    const description = typeof tattoo === "string" ? "" : (tattoo.description || "");
+    const caption = description || `Tattoo ${index + 1}`;
+    return `
     <figure class="report-photo tattoo-report-photo">
-      <img src="${src}" alt="Tattoo picture ${index + 1}">
-      <figcaption>Tattoo ${index + 1}</figcaption>
+      <img src="${src}" alt="${escapeHtml(description || `Tattoo picture ${index + 1}`)}">
+      <figcaption>${escapeHtml(caption)}</figcaption>
     </figure>
-  `).join("");
+  `;
+  }).join("");
 
   const history = record.statusHistory || [];
   const historyMarkup = history.map(item => `
@@ -801,6 +1129,7 @@ function buildReportMarkup(record) {
       ${reportField("DOB", formatDate(record.dob))}
       ${reportField("Age", record.age)}
       ${reportField("Address", record.address)}
+      ${reportField("Affiliation", record.affiliation)}
       ${reportField("Gang Affiliation", record.gangAffiliation)}
       ${reportField("Currently in prison", record.inPrison ? "Yes" : "No")}
       ${record.inPrison && record.admissionDate ? reportField("Admission Date", formatDate(record.admissionDate)) : ""}
@@ -836,10 +1165,13 @@ function reportImage(label, src) {
 }
 
 function normalizeImages(images) {
+  const tattoos = Array.isArray(images?.tattoos)
+    ? images.tattoos.map(t => typeof t === "string" ? { src: t, description: "" } : { src: t.src || "", description: t.description || "" })
+    : [];
   return {
     ...emptyRecord().images,
     ...(images || {}),
-    tattoos: Array.isArray(images?.tattoos) ? images.tattoos : []
+    tattoos
   };
 }
 

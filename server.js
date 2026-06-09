@@ -124,6 +124,27 @@ async function handleApi(req, res, url) {
     return;
   }
 
+  if (req.method === "DELETE" && url.pathname === "/api/records") {
+    if (!canManageUsers(currentUser)) {
+      sendJson(res, 403, { error: "Admin access required" });
+      return;
+    }
+
+    const body = await readBody(req);
+    const index = Number(body.index);
+    const currentRecords = await getRecords();
+
+    if (isNaN(index) || index < 0 || index >= currentRecords.length) {
+      sendJson(res, 400, { error: "Invalid record index" });
+      return;
+    }
+
+    currentRecords.splice(index, 1);
+    await saveRecords(currentRecords);
+    sendJson(res, 200, { records: currentRecords });
+    return;
+  }
+
   if (req.method === "GET" && url.pathname === "/api/users") {
     if (!canManageUsers(currentUser)) {
       sendJson(res, 403, { error: "Admin access required" });
@@ -335,7 +356,7 @@ async function getRecords() {
   const [inmateRows] = await dbPool.query(`
     SELECT
       id, inmate_id AS inmateId, first_name AS firstName, middle_name AS middleName,
-      last_name AS lastName, alias, dob, age, address, comment,
+      last_name AS lastName, alias, dob, age, address, comment, affiliation,
       gang_affiliation AS gangAffiliation, person_name AS personName, in_prison AS inPrison,
       admission_date AS admissionDate, discharge_date AS dischargeDate, status_history AS statusHistory
     FROM inmates
@@ -345,7 +366,7 @@ async function getRecords() {
   if (!inmateRows.length) return defaultRecords();
 
   const [photoRows] = await dbPool.query("SELECT inmate_id AS inmateDbId, photo_type AS photoType, image_data AS imageData FROM inmate_photos");
-  const [tattooRows] = await dbPool.query("SELECT inmate_id AS inmateDbId, image_data AS imageData FROM inmate_tattoos ORDER BY id");
+  const [tattooRows] = await dbPool.query("SELECT inmate_id AS inmateDbId, image_data AS imageData, description AS description FROM inmate_tattoos ORDER BY id");
   const photosByInmate = groupBy(photoRows, "inmateDbId");
   const tattoosByInmate = groupBy(tattooRows, "inmateDbId");
 
@@ -358,7 +379,10 @@ async function getRecords() {
       if (photo.photoType === "left_face") images.leftFace = photo.imageData || "";
     }
 
-    images.tattoos = (tattoosByInmate.get(row.id) || []).map(tattoo => tattoo.imageData || "");
+    images.tattoos = (tattoosByInmate.get(row.id) || []).map(tattoo => ({
+      src: tattoo.imageData || "",
+      description: tattoo.description || ""
+    }));
 
     return {
       inmateId: row.inmateId || "",
@@ -370,6 +394,7 @@ async function getRecords() {
       age: row.age === null || row.age === undefined ? "" : String(row.age),
       address: row.address || "",
       comment: row.comment || "",
+      affiliation: row.affiliation || "",
       gangAffiliation: row.gangAffiliation || "",
       personName: row.personName || "",
       inPrison: Boolean(row.inPrison),
@@ -396,8 +421,8 @@ async function saveRecords(records) {
       const [result] = await connection.execute(`
         INSERT INTO inmates (
           inmate_id, first_name, middle_name, last_name, alias, dob, age, address,
-          comment, gang_affiliation, person_name, in_prison, admission_date, discharge_date, status_history
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          comment, affiliation, gang_affiliation, person_name, in_prison, admission_date, discharge_date, status_history
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `, [
         record.inmateId || "",
         record.firstName || "",
@@ -408,6 +433,7 @@ async function saveRecords(records) {
         record.age ? Number(record.age) : null,
         record.address || "",
         record.comment || "",
+        record.affiliation || "",
         record.gangAffiliation || "",
         record.personName || "",
         record.inPrison ? 1 : 0,
@@ -423,10 +449,12 @@ async function saveRecords(records) {
       await insertPhoto(connection, inmateDbId, "right_face", images.rightFace);
 
       for (const tattoo of images.tattoos) {
-        if (!tattoo) continue;
+        const src = typeof tattoo === "string" ? tattoo : (tattoo.src || "");
+        const desc = typeof tattoo === "string" ? "" : (tattoo.description || "");
+        if (!src) continue;
         await connection.execute(
-          "INSERT INTO inmate_tattoos (inmate_id, image_data, mime_type) VALUES (?, ?, ?)",
-          [inmateDbId, tattoo, getMimeType(tattoo)]
+          "INSERT INTO inmate_tattoos (inmate_id, image_data, mime_type, description) VALUES (?, ?, ?, ?)",
+          [inmateDbId, src, getMimeType(src), desc]
         );
       }
     }
@@ -607,10 +635,13 @@ function emptyImages() {
 }
 
 function normalizeImages(images) {
+  const tattoos = Array.isArray(images?.tattoos)
+    ? images.tattoos.map(t => typeof t === "string" ? { src: t, description: "" } : { src: t.src || "", description: t.description || "" })
+    : [];
   return {
     ...emptyImages(),
     ...(images || {}),
-    tattoos: Array.isArray(images?.tattoos) ? images.tattoos : []
+    tattoos
   };
 }
 
@@ -664,6 +695,7 @@ function defaultRecords() {
     age: "51",
     address: "Mayflower Drive, Orange Walk",
     comment: "",
+    affiliation: "",
     gangAffiliation: "",
     personName: "",
     inPrison: false,

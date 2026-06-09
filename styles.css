@@ -80,6 +80,26 @@ button:disabled {
   opacity: 0.55;
 }
 
+button.danger-button {
+  background: linear-gradient(
+    180deg,
+    #e74c3c 0%,
+    #c0392b 50%,
+    #a93226 100%
+  );
+  border-top: 1px solid rgba(255, 255, 255, 0.3);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.3);
+}
+
+button.danger-button:hover {
+  background: linear-gradient(
+    180deg,
+    #ec5d4f 0%,
+    #d44637 50%,
+    #b83a30 100%
+  );
+}
+
 .hidden {
   display: none !important;
 }
@@ -235,6 +255,8 @@ select {
   border: 1px solid #b99f9a;
   background: var(--panel);
   padding: 26px;
+  max-width: 1400px;
+  min-height: 800px;
 }
 
 .top-row {
@@ -247,11 +269,18 @@ select {
 
 .id-status-row {
   display: grid;
-  width: min(760px, 100%);
+  width: min(1350px, 100%);
   grid-template-columns: minmax(0, 220px) minmax(0, 1fr);
   gap: 22px;
   align-items: start;
   justify-content: center;
+  margin-bottom: 20px;
+}
+
+.search-and-id {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .status-block {
@@ -260,26 +289,13 @@ select {
 }
 
 .inmate-id {
+  display: flex;
+  gap: 10px;
+  align-items: center;
   width: auto;
-  grid-template-columns: 140px minmax(0, 1fr);
 }
 
 .inmate-id input {
-  width: 10ch;
-}
-
-.search-bar {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  background: rgba(255, 255, 255, 0.95);
-  border: 1px solid rgba(209, 213, 219, 0.9);
-  border-radius: 16px;
-  padding: 10px 14px;
-  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
-}
-
-.search-bar input {
   width: 140px;
   min-width: 100px;
   border-radius: 8px;
@@ -289,13 +305,55 @@ select {
   height: 30px;
 }
 
-.search-bar button {
+.search-bar {
+  display: flex;
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid #d1d5db;
   border-radius: 8px;
-  background: var(--action);
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  transition: border-color 0.2s, box-shadow 0.2s;
+  width: 250px;
+}
+
+.search-bar:focus-within {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.search-bar input {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  padding: 8px 12px;
+  font-size: 14px;
+  color: #1f2937;
+  min-width: 120px;
+  text-align: center;
+}
+
+.search-bar input::placeholder {
+  color: #9ca3af;
+  opacity: 0.7;
+  text-align: center;
+}
+
+.search-bar button {
+  border: none;
+  background: #3b82f6;
   color: #ffffff;
-  padding: 0 14px;
-  min-height: 30px;
-  font-size: 13px;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+  white-space: nowrap;
+}
+
+.search-bar button:hover {
+  background: #2563eb;
 }
 
 
@@ -614,11 +672,18 @@ input {
 }
 
 .photo-frame img,
-.image-box img,
-.tattoo-thumb img {
+.image-box img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+.tattoo-thumb img {
+  width: 100%;
+  height: auto;
+  object-fit: cover;
+  cursor: pointer;
+  display: block;
 }
 
 .photo-frame img[src=""],
@@ -1012,10 +1077,38 @@ input {
 
 .tattoo-thumb {
   position: relative;
-  aspect-ratio: 1;
-  overflow: hidden;
   border: 1px solid var(--line);
   background: #ffffff;
+  padding-bottom: 4px;
+  display: flex;
+  flex-direction: column;
+}
+
+.tattoo-thumb img {
+  width: 100%;
+  height: auto;
+  object-fit: cover;
+  cursor: pointer;
+  display: block;
+}
+
+.tattoo-desc {
+  margin: 4px 4px 2px;
+  font-size: 11px;
+  color: #555;
+  text-align: center;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 2px;
+  transition: background-color 0.2s;
+}
+
+.tattoo-desc:hover {
+  background-color: #f0f0f0;
 }
 
 .modal-actions {
@@ -1491,4 +1584,249 @@ select {
   .empty-photo span {
     font-size: 11px;
   }
+}
+
+/* ── Tattoo description label ── */
+.tattoo-desc {
+  margin: 4px 0 0;
+  font-size: 11px;
+  color: #555;
+  text-align: center;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Tattoo viewer modal ── */
+dialog.tattoo-modal-overlay {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  max-width: none;
+  max-height: none;
+  border: none;
+  background: rgba(0, 0, 0, 0.85);
+  padding: 20px;
+  z-index: 9999;
+}
+
+dialog.tattoo-modal-overlay::backdrop {
+  background: rgba(0, 0, 0, 0.85);
+}
+
+dialog.tattoo-modal-overlay[open] {
+  display: grid;
+  place-items: center;
+}
+
+.tattoo-modal {
+  position: relative;
+  max-width: 90vw;
+  max-height: 90vh;
+  background: #1a1a1a;
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.tattoo-modal-close {
+  position: absolute;
+  top: 8px;
+  right: 12px;
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 28px;
+  cursor: pointer;
+  line-height: 1;
+  z-index: 2;
+  opacity: 0.8;
+}
+
+.tattoo-modal-close:hover {
+  opacity: 1;
+}
+
+.tattoo-modal-controls {
+  display: flex;
+  gap: 8px;
+}
+
+.zoom-btn {
+  background: #333;
+  color: #fff;
+  border: 1px solid #555;
+  border-radius: 6px;
+  padding: 6px 14px;
+  font-size: 16px;
+  cursor: pointer;
+  min-width: 40px;
+}
+
+.zoom-btn:hover {
+  background: #444;
+}
+
+.tattoo-modal-img-wrapper {
+  overflow: hidden;
+  max-width: 85vw;
+  max-height: 70vh;
+  display: flex;
+  place-items: center;
+  background: #000;
+  border-radius: 6px;
+  cursor: grab;
+  position: relative;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.tattoo-modal-img-wrapper::-webkit-scrollbar {
+  display: none;
+}
+
+.tattoo-modal-img-wrapper.panning {
+  cursor: grabbing;
+}
+
+.tattoo-modal-img-wrapper img {
+  display: block;
+  max-width: 100%;
+  max-height: 70vh;
+  object-fit: contain;
+  transition: transform 0.2s ease;
+  transform-origin: center center;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.tattoo-modal-desc {
+  color: #ccc;
+  font-size: 14px;
+  text-align: center;
+  margin: 0;
+  max-width: 80vw;
+}
+
+body.modal-open {
+  overflow: hidden;
+}
+
+/* ── Tattoo Description Modal ── */
+dialog.tattoo-desc-modal-overlay {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  max-width: none;
+  max-height: none;
+  border: none;
+  background: rgba(0, 0, 0, 0.85);
+  padding: 20px;
+  z-index: 10000;
+}
+
+dialog.tattoo-desc-modal-overlay::backdrop {
+  background: rgba(0, 0, 0, 0.85);
+}
+
+dialog.tattoo-desc-modal-overlay[open] {
+  display: grid;
+  place-items: center;
+}
+
+.tattoo-desc-modal {
+  background: #fff;
+  border-radius: 12px;
+  padding: 24px;
+  max-width: 420px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.tattoo-desc-modal h3 {
+  margin: 0;
+  font-size: 18px;
+  color: #333;
+  text-align: center;
+}
+
+.tattoo-desc-preview {
+  display: flex;
+  justify-content: center;
+}
+
+.tattoo-desc-preview img {
+  max-width: 100%;
+  max-height: 200px;
+  object-fit: contain;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+}
+
+.tattoo-desc-filename {
+  margin: 0;
+  font-size: 13px;
+  color: #666;
+  text-align: center;
+  font-weight: 500;
+}
+
+.tattoo-desc-modal textarea {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #d0d0d0;
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: inherit;
+  resize: vertical;
+  min-height: 80px;
+  box-sizing: border-box;
+}
+
+.tattoo-desc-modal textarea:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.tattoo-desc-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.tattoo-desc-actions button {
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  transition: background 0.2s;
+}
+
+.tattoo-desc-actions .btn-cancel {
+  background: #e5e7eb;
+  color: #374151;
+}
+
+.tattoo-desc-actions .btn-cancel:hover {
+  background: #d1d5db;
+}
+
+.tattoo-desc-actions .btn-save {
+  background: #3b82f6;
+  color: #fff;
+}
+
+.tattoo-desc-actions .btn-save:hover {
+  background: #2563eb;
 }

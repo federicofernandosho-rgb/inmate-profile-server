@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS inmates (
   age INT,
   address VARCHAR(255),
   comment TEXT,
+  affiliation VARCHAR(255),
   gang_affiliation VARCHAR(150),
   person_name VARCHAR(255),
   in_prison BOOLEAN NOT NULL DEFAULT TRUE,

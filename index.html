@@ -56,21 +56,17 @@
 
       <section class="workspace" aria-label="Inmate profile form">
         <form id="inmateForm" autocomplete="off">
-          <div class="top-row">
-            <div class="search-bar">
-              <label>
-                <span class="visually-hidden">Search by Inmate ID</span>
-                <input id="searchInput" name="searchInput" type="text" inputmode="numeric" maxlength="7" placeholder="Search by Inmate ID">
-              </label>
-              <button id="searchButton" type="button">Search</button>
-            </div>
-          </div>
-
           <div class="id-status-row">
-            <label class="field inmate-id">
-              <span>Inmate ID</span>
-              <input id="inmateId" name="inmateId" type="text" inputmode="numeric" maxlength="7" required>
-            </label>
+            <div class="search-and-id">
+              <div class="search-bar">
+                <input id="searchInput" name="searchInput" type="text" inputmode="numeric" maxlength="7" placeholder="Search by ID">
+                <button id="searchButton" type="button">Search</button>
+              </div>
+              <label class="field inmate-id">
+                <span>Inmate ID</span>
+                <input id="inmateId" name="inmateId" type="text" inputmode="numeric" maxlength="7" required>
+              </label>
+            </div>
             <div class="status-block">
               <fieldset class="status-options incarceration-status-field">
                 <legend>Incarceration Status</legend>
@@ -126,6 +122,11 @@
               <input id="address" name="address" type="text">
             </label>
 
+            <label class="field affiliation-field">
+              <span>Affiliation</span>
+              <input id="affiliation" name="affiliation" type="text">
+            </label>
+
             <label class="field comment-field">
               <span>Comment</span>
               <textarea id="comment" name="comment" rows="5"></textarea>
@@ -153,7 +154,9 @@
         <div class="actions-left">
           <button type="button" id="newRecord" data-edit-only>New Inmate</button>
           <button type="button" id="saveRecord" data-edit-only>Save Record</button>
+          <button type="button" id="cancelRecord" data-edit-only>Cancel</button>
           <button type="button" id="updateRecord" data-edit-only>Update Record</button>
+          <button type="button" id="deleteRecord" class="danger-button" data-admin-only>Delete Record</button>
         </div>
         <div class="actions-center">
           <button type="button" id="previousRecord">Previous</button>
@@ -268,6 +271,36 @@
           <div class="user-list" id="userList"></div>
           <p class="message" id="userMessage" role="status" aria-live="polite"></p>
         </section>
+      </div>
+    </dialog>
+
+    <dialog class="tattoo-modal-overlay" id="tattooModal">
+      <div class="tattoo-modal">
+        <button type="button" class="tattoo-modal-close" id="tattooModalClose" aria-label="Close">&times;</button>
+        <div class="tattoo-modal-controls">
+          <button type="button" class="zoom-btn" id="zoomInBtn" aria-label="Zoom in">+</button>
+          <button type="button" class="zoom-btn" id="zoomOutBtn" aria-label="Zoom out">&minus;</button>
+          <button type="button" class="zoom-btn" id="zoomResetBtn" aria-label="Reset zoom">1:1</button>
+        </div>
+        <div class="tattoo-modal-img-wrapper">
+          <img id="tattooModalImg" src="" alt="">
+        </div>
+        <p class="tattoo-modal-desc" id="tattooModalDesc"></p>
+      </div>
+    </dialog>
+
+    <dialog class="tattoo-desc-modal-overlay" id="tattooDescModal">
+      <div class="tattoo-desc-modal">
+        <h3>Add Tattoo Description</h3>
+        <div class="tattoo-desc-preview">
+          <img id="tattooDescPreview" src="" alt="Tattoo preview">
+        </div>
+        <p class="tattoo-desc-filename" id="tattooDescFileName"></p>
+        <textarea id="tattooDescInput" placeholder="Describe this tattoo (e.g., location, design, symbols)..." rows="3"></textarea>
+        <div class="tattoo-desc-actions">
+          <button type="button" class="btn-cancel" id="tattooDescCancel">Cancel</button>
+          <button type="button" class="btn-save" id="tattooDescSave">Save</button>
+        </div>
       </div>
     </dialog>
 

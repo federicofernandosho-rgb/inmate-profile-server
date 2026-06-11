@@ -62,6 +62,12 @@ const fields = {
 const searchInput = document.querySelector("#searchInput");
 const searchButton = document.querySelector("#searchButton");
 
+// Pagination & filter state
+let pageSize = 10;
+let currentPage = 1;
+let filteredRecords = [];
+let activeFilters = { status: "all", affiliation: "", gang: "", dateFrom: "", dateTo: "" };
+
 const intelDialog = document.querySelector("#intelDialog");
 const mainHistoryTimeline = document.querySelector("#mainHistoryTimeline");
 const mainPreview = document.querySelector("#mainPreview");
@@ -89,8 +95,34 @@ document.querySelector("#cancelRecord").addEventListener("click", cancelNewRecor
 document.querySelector("#updateRecord").addEventListener("click", updateCurrentRecord);
 document.querySelector("#deleteRecord").addEventListener("click", deleteRecord);
 document.querySelector("#generatePdf").addEventListener("click", generatePdfReport);
+document.querySelector("#printAllRecords").addEventListener("click", printAllRecords);
 document.querySelector("#openIntelModal").addEventListener("click", openIntelModal);
 document.querySelector("#closeModal").addEventListener("click", () => intelDialog.close());
+
+// Dark mode
+document.querySelector("#darkModeToggle").addEventListener("click", toggleDarkMode);
+if (localStorage.getItem("darkMode") === "1") applyDarkMode(true);
+
+// Export CSV
+document.querySelector("#exportCsvButton").addEventListener("click", exportCsv);
+
+// Audit log
+document.querySelector("#auditLogButton").addEventListener("click", openAuditLog);
+document.querySelector("#closeAuditModal").addEventListener("click", () => document.querySelector("#auditDialog").close());
+document.querySelector("#auditApplyFilter").addEventListener("click", renderAuditList);
+
+// Filters
+document.querySelector("#applyFilter").addEventListener("click", applyRecordFilters);
+document.querySelector("#clearFilter").addEventListener("click", clearRecordFilters);
+
+// Pagination
+document.querySelector("#firstPage").addEventListener("click", () => { currentPage = 1; renderCurrentRecord(); });
+document.querySelector("#lastPage").addEventListener("click", () => { currentPage = totalPages(); renderCurrentRecord(); });
+document.querySelector("#pageSizeSelect").addEventListener("change", e => {
+  pageSize = e.target.value === "all" ? Infinity : Number(e.target.value);
+  currentPage = 1;
+  renderCurrentRecord();
+});
 document.querySelector("#saveIntel").addEventListener("click", saveIntelDetails);
 document.querySelectorAll(".remove-image").forEach(button => {
   button.addEventListener("click", () => removeFaceImage(button.dataset.imageKey));
@@ -329,16 +361,18 @@ function logout() {
 async function loadRecordsFromBackend() {
   const result = await apiFetch("/api/records");
   records = Array.isArray(result.records) && result.records.length ? result.records : [emptyRecord()];
+  applyFiltersToRecords();
   currentIndex = Math.min(currentIndex, records.length - 1);
 }
 
-async function persistRecords() {
+async function persistRecords(auditAction, auditDetail) {
   if (!canEdit()) return;
   const result = await apiFetch("/api/records", {
     method: "PUT",
-    body: { records }
+    body: { records, auditAction: auditAction || "update_records", auditDetail: auditDetail || "" }
   });
   records = result.records;
+  applyFiltersToRecords();
 }
 
 async function migrateLegacyRecordsIfNeeded() {
@@ -504,10 +538,67 @@ function updateStatusDateVisibility() {
   dateFieldWrapper.querySelector("span").textContent = getStatusDateLabel();
 }
 
+// ── Pagination & Filtering ────────────────────────────────────────────────────
+function totalPages() {
+  if (pageSize === Infinity) return 1;
+  return Math.max(1, Math.ceil(filteredRecords.length / pageSize));
+}
+
+function applyFiltersToRecords() {
+  filteredRecords = records.filter(r => {
+    if (activeFilters.status === "in" && !r.inPrison) return false;
+    if (activeFilters.status === "out" && r.inPrison) return false;
+    if (activeFilters.affiliation && !String(r.affiliation || "").toLowerCase().includes(activeFilters.affiliation.toLowerCase())) return false;
+    if (activeFilters.gang && !String(r.gangAffiliation || "").toLowerCase().includes(activeFilters.gang.toLowerCase())) return false;
+    if (activeFilters.dateFrom) {
+      const d = r.admissionDate || r.dischargeDate || "";
+      if (!d || d < activeFilters.dateFrom) return false;
+    }
+    if (activeFilters.dateTo) {
+      const d = r.admissionDate || r.dischargeDate || "";
+      if (!d || d > activeFilters.dateTo) return false;
+    }
+    return true;
+  });
+}
+
+function applyRecordFilters() {
+  activeFilters.status = document.querySelector("#filterStatus").value;
+  activeFilters.affiliation = document.querySelector("#filterAffiliation").value.trim();
+  activeFilters.gang = document.querySelector("#filterGang").value.trim();
+  activeFilters.dateFrom = document.querySelector("#filterDateFrom").value;
+  activeFilters.dateTo = document.querySelector("#filterDateTo").value;
+  applyFiltersToRecords();
+  currentPage = 1;
+  currentIndex = filteredRecords.length ? records.indexOf(filteredRecords[0]) : 0;
+  renderCurrentRecord();
+  showMessage(`Filter applied. ${filteredRecords.length} record(s) found.`, "info");
+}
+
+function clearRecordFilters() {
+  activeFilters = { status: "all", affiliation: "", gang: "", dateFrom: "", dateTo: "" };
+  document.querySelector("#filterStatus").value = "all";
+  document.querySelector("#filterAffiliation").value = "";
+  document.querySelector("#filterGang").value = "";
+  document.querySelector("#filterDateFrom").value = "";
+  document.querySelector("#filterDateTo").value = "";
+  applyFiltersToRecords();
+  currentPage = 1;
+  currentIndex = 0;
+  renderCurrentRecord();
+  showMessage("Filters cleared.", "info");
+}
+
 function updateStatus() {
-  recordStatus.textContent = records.length
-    ? `Record ${currentIndex + 1} of ${records.length}`
-    : "No records";
+  const tp = totalPages();
+  const indicator = document.querySelector("#pageIndicator");
+  if (indicator) indicator.textContent = `Page ${currentPage} / ${tp}`;
+
+  const pool = filteredRecords.length ? filteredRecords : records;
+  const posInPool = pool.indexOf(records[currentIndex]);
+  const displayPos = posInPool >= 0 ? posInPool + 1 : currentIndex + 1;
+  const total = pool.length;
+  recordStatus.textContent = total ? `Record ${displayPos} of ${total}` : "No records";
 }
 
 function validateRecord(record) {
@@ -545,7 +636,7 @@ async function saveNewRecord() {
   }
 
   isNewRecord = false;
-  await persistRecords();
+  await persistRecords("create_record", `ID ${record.inmateId} - ${record.firstName} ${record.lastName}`);
   renderCurrentRecord();
   showMessage("Inmate record saved.", "success");
 }
@@ -568,7 +659,7 @@ async function updateCurrentRecord() {
   }
 
   records[currentIndex] = record;
-  await persistRecords();
+  await persistRecords("update_records", `ID ${record.inmateId} - ${record.firstName} ${record.lastName}`);
   renderCurrentRecord();
   showMessage("Inmate record updated.", "success");
 }
@@ -649,7 +740,8 @@ function cancelNewRecord() {
 }
 
 async function showPreviousRecord() {
-  if (records.length < 2) {
+  const pool = filteredRecords.length ? filteredRecords : records;
+  if (pool.length < 2) {
     showMessage("There is no previous record yet.");
     return;
   }
@@ -659,13 +751,22 @@ async function showPreviousRecord() {
     await persistRecords();
   }
 
-  currentIndex = (currentIndex - 1 + records.length) % records.length;
+  const posInPool = pool.indexOf(records[currentIndex]);
+  const prevPos = (posInPool - 1 + pool.length) % pool.length;
+  currentIndex = records.indexOf(pool[prevPos]);
+
+  if (pageSize !== Infinity) {
+    const filteredPos = filteredRecords.indexOf(pool[prevPos]);
+    if (filteredPos >= 0) currentPage = Math.floor(filteredPos / pageSize) + 1;
+  }
+
   renderCurrentRecord();
   showMessage("Previous record loaded.");
 }
 
 async function showNextRecord() {
-  if (records.length < 2) {
+  const pool = filteredRecords.length ? filteredRecords : records;
+  if (pool.length < 2) {
     showMessage("There is no next record yet.");
     return;
   }
@@ -675,7 +776,15 @@ async function showNextRecord() {
     await persistRecords();
   }
 
-  currentIndex = (currentIndex + 1) % records.length;
+  const posInPool = pool.indexOf(records[currentIndex]);
+  const nextPos = (posInPool + 1) % pool.length;
+  currentIndex = records.indexOf(pool[nextPos]);
+
+  if (pageSize !== Infinity) {
+    const filteredPos = filteredRecords.indexOf(pool[nextPos]);
+    if (filteredPos >= 0) currentPage = Math.floor(filteredPos / pageSize) + 1;
+  }
+
   renderCurrentRecord();
   showMessage("Next record loaded.");
 }
@@ -1309,6 +1418,88 @@ function handleSearch(event) {
   currentIndex = matchIndex;
   renderCurrentRecord();
   showMessage(`Loaded inmate ${lookupId}.`);
+}
+
+// ── Dark Mode ────────────────────────────────────────────────────────────────
+function applyDarkMode(on) {
+  document.body.classList.toggle("dark-mode", on);
+  const btn = document.querySelector("#darkModeToggle");
+  if (btn) btn.textContent = on ? "\u2600\uFE0F" : "\uD83C\uDF19";
+}
+
+function toggleDarkMode() {
+  const on = !document.body.classList.contains("dark-mode");
+  applyDarkMode(on);
+  localStorage.setItem("darkMode", on ? "1" : "0");
+}
+
+// ── Export CSV ───────────────────────────────────────────────────────────────
+function exportCsv() {
+  const link = document.createElement("a");
+  link.href = "/api/export/csv";
+  link.download = "";
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  showMessage("CSV export started.", "success");
+}
+
+// ── Audit Log ────────────────────────────────────────────────────────────────
+async function openAuditLog() {
+  if (!canManageUsers()) {
+    showMessage("Only admins can view the audit log.");
+    return;
+  }
+  document.querySelector("#auditList").innerHTML = "<p>Loading...</p>";
+  document.querySelector("#auditDialog").showModal();
+  await renderAuditList();
+}
+
+async function renderAuditList() {
+  try {
+    const result = await apiFetch("/api/audit");
+    const filterUser = (document.querySelector("#auditFilterUser").value || "").trim().toLowerCase();
+    const filterAction = document.querySelector("#auditFilterAction").value || "";
+
+    let log = [...result.log].reverse();
+    if (filterUser) log = log.filter(e => (e.username || "").toLowerCase().includes(filterUser));
+    if (filterAction) log = log.filter(e => e.action === filterAction);
+
+    const list = document.querySelector("#auditList");
+    if (!log.length) {
+      list.innerHTML = "<p>No audit entries found.</p>";
+      return;
+    }
+
+    list.innerHTML = log.map(e => `
+      <div class="audit-entry">
+        <span class="audit-action">${escapeHtml(e.action || "")}</span>
+        <span class="audit-user">${escapeHtml(e.username || "")}</span>
+        <span class="audit-detail">${escapeHtml(e.detail || "")}</span>
+        <span class="audit-time">${e.timestamp ? new Date(e.timestamp).toLocaleString() : ""}</span>
+      </div>
+    `).join("");
+  } catch (error) {
+    document.querySelector("#auditList").innerHTML = `<p>Error: ${escapeHtml(error.message)}</p>`;
+  }
+}
+
+// ── Print All Records ────────────────────────────────────────────────────────
+function printAllRecords() {
+  const pool = filteredRecords.length ? filteredRecords : records;
+  if (!pool.length) {
+    showMessage("No records to print.");
+    return;
+  }
+
+  const reportTemplate = document.querySelector("#reportTemplate");
+  reportTemplate.innerHTML = pool.map((record, i) => {
+    const divider = i < pool.length - 1 ? '<div class="report-page-break"></div>' : "";
+    return buildReportMarkup(record) + divider;
+  }).join("");
+
+  document.body.classList.add("printing");
+  window.print();
 }
 
 function escapeHtml(value) {

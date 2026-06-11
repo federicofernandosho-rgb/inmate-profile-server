@@ -48,7 +48,10 @@
         </div>
         <div class="header-tools">
           <div class="session-status" id="sessionStatus">Not signed in</div>
+          <button class="secondary" type="button" id="darkModeToggle" aria-label="Toggle dark mode" title="Toggle dark mode">&#127769;</button>
           <button class="secondary" type="button" id="manageUsers">Users</button>
+          <button class="secondary" type="button" id="auditLogButton">Audit Log</button>
+          <button class="secondary" type="button" id="exportCsvButton">Export CSV</button>
           <button class="secondary" type="button" id="logoutButton">Log Out</button>
           <div class="record-status" id="recordStatus">Record 1 of 1</div>
         </div>
@@ -56,6 +59,35 @@
 
       <section class="workspace" aria-label="Inmate profile form">
         <form id="inmateForm" autocomplete="off">
+          <div class="filter-bar" id="filterBar">
+            <label class="filter-item">
+              <span>Status</span>
+              <select id="filterStatus">
+                <option value="all">All</option>
+                <option value="in">In Prison</option>
+                <option value="out">Out of Prison</option>
+              </select>
+            </label>
+            <label class="filter-item">
+              <span>Affiliation</span>
+              <input id="filterAffiliation" type="text" placeholder="Filter affiliation...">
+            </label>
+            <label class="filter-item">
+              <span>Gang</span>
+              <input id="filterGang" type="text" placeholder="Filter gang...">
+            </label>
+            <label class="filter-item">
+              <span>Date From</span>
+              <input id="filterDateFrom" type="date">
+            </label>
+            <label class="filter-item">
+              <span>Date To</span>
+              <input id="filterDateTo" type="date">
+            </label>
+            <button type="button" id="applyFilter">Apply</button>
+            <button type="button" class="secondary" id="clearFilter">Clear</button>
+          </div>
+
           <div class="id-status-row">
             <div class="search-and-id">
               <div class="search-bar">
@@ -160,9 +192,26 @@
         </div>
         <div class="actions-center">
           <button type="button" id="previousRecord">Previous</button>
+          <div class="pagination-controls" id="paginationControls">
+            <button type="button" class="secondary page-btn" id="firstPage" aria-label="First page">&laquo;</button>
+            <span id="pageIndicator" class="page-indicator">1 / 1</span>
+            <button type="button" class="secondary page-btn" id="lastPage" aria-label="Last page">&raquo;</button>
+            <label class="page-size-label">
+              Per page
+              <select id="pageSizeSelect">
+                <option value="10">10</option>
+                <option value="25">25</option>
+                <option value="50">50</option>
+                <option value="all">All</option>
+              </select>
+            </label>
+          </div>
           <button type="button" id="nextRecord">Next</button>
         </div>
-        <button type="button" id="generatePdf">Generate PDF</button>
+        <div class="pdf-actions">
+          <button type="button" id="generatePdf">Generate PDF</button>
+          <button type="button" class="secondary" id="printAllRecords">Print All</button>
+        </div>
       </nav>
 
       <p class="message global-notice" id="message" role="status" aria-live="polite"></p>
@@ -305,6 +354,38 @@
     </dialog>
 
     <section id="reportTemplate" class="report-template" aria-hidden="true"></section>
+
+    <dialog id="auditDialog" class="audit-dialog">
+      <div class="modal-shell">
+        <header class="modal-header">
+          <div>
+            <h2>Audit Log</h2>
+            <p>System activity history</p>
+          </div>
+          <button type="button" class="icon-button" id="closeAuditModal" aria-label="Close audit log">X</button>
+        </header>
+        <section class="modal-body">
+          <div class="audit-filters">
+            <label>
+              User
+              <input id="auditFilterUser" type="text" placeholder="Filter by user...">
+            </label>
+            <label>
+              Action
+              <select id="auditFilterAction">
+                <option value="">All actions</option>
+                <option value="view_records">View Records</option>
+                <option value="update_records">Update Records</option>
+                <option value="create_record">Create Record</option>
+                <option value="delete_record">Delete Record</option>
+              </select>
+            </label>
+            <button type="button" id="auditApplyFilter">Filter</button>
+          </div>
+          <div class="audit-list" id="auditList"><p>Loading...</p></div>
+        </section>
+      </div>
+    </dialog>
 
     <script src="app.js"></script>
   </body>

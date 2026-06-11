@@ -210,6 +210,7 @@ async function showApp() {
   sessionStatus.textContent = `${currentUser.username} - ${roleLabel(currentUser.role)}`;
   manageUsersButton.classList.toggle("hidden", !canManageUsers());
   document.querySelector("#deleteRecord").classList.toggle("hidden", !canManageUsers());
+  document.querySelector("#auditLogButton").classList.toggle("hidden", !canManageUsers());
   applyAccessMode();
   await loadRecordsFromBackend();
   await migrateLegacyRecordsIfNeeded();
@@ -857,7 +858,7 @@ async function saveIntelDetails() {
 
   // Save current record (images are updated via file inputs already)
   records[currentIndex] = record;
-  await persistRecords("update_records", `Images updated for ID ${record.inmateId}`);
+  await persistRecords("update_images", `Images updated for ${name} (ID: ${record.inmateId})`);
   renderCurrentRecord();
   intelDialog.close();
   showMessage(`Images saved for ${name}.`, "success");
@@ -1481,18 +1482,37 @@ async function renderAuditList() {
 
     const list = document.querySelector("#auditList");
     if (!log.length) {
-      list.innerHTML = "<p>No audit entries found.</p>";
+      list.innerHTML = "<p style='color:var(--muted);text-align:center;padding:20px'>No audit entries found.</p>";
       return;
     }
 
-    list.innerHTML = log.map(e => `
-      <div class="audit-entry">
-        <span class="audit-action">${escapeHtml(e.action || "")}</span>
-        <span class="audit-user">${escapeHtml(e.username || "")}</span>
-        <span class="audit-detail">${escapeHtml(e.detail || "")}</span>
-        <span class="audit-time">${e.timestamp ? new Date(e.timestamp).toLocaleString() : ""}</span>
-      </div>
-    `).join("");
+    const actionLabels = {
+      view_records:   "Viewed Records",
+      create_record:  "Created Record",
+      update_records: "Edited Record",
+      delete_record:  "Deleted Record",
+      update_images:  "Updated Images"
+    };
+
+    list.innerHTML = log.map(e => {
+      const label = actionLabels[e.action] || e.action;
+      const ts = e.timestamp ? new Date(e.timestamp) : null;
+      const dateStr = ts ? ts.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }) : "";
+      const timeStr = ts ? ts.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", second: "2-digit" }) : "";
+      return `
+        <div class="audit-entry">
+          <div class="audit-action-badge">${escapeHtml(label)}</div>
+          <div class="audit-body">
+            <div class="audit-detail">${escapeHtml(e.detail || "—")}</div>
+            <div class="audit-meta">
+              <span class="audit-user">&#128100; ${escapeHtml(e.username || "unknown")}</span>
+              <span class="audit-date">&#128197; ${escapeHtml(dateStr)}</span>
+              <span class="audit-time-val">&#128336; ${escapeHtml(timeStr)}</span>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join("");
   } catch (error) {
     document.querySelector("#auditList").innerHTML = `<p>Error: ${escapeHtml(error.message)}</p>`;
   }

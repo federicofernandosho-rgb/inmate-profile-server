@@ -328,12 +328,28 @@ select {
 
 .id-status-row {
   display: grid;
-  width: min(1350px, 100%);
-  grid-template-columns: minmax(0, 220px) minmax(0, 1fr);
+  width: 100%;
+  grid-template-columns: auto 1fr auto;
   gap: 22px;
   align-items: start;
-  justify-content: center;
   margin-bottom: 20px;
+}
+
+.photo-strip {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+  justify-self: end;
+}
+
+.photo-frame {
+  width: 120px;
+  aspect-ratio: 4 / 5;
+}
+
+.photo-strip button {
+  width: 100%;
 }
 
 .search-and-id {
@@ -603,7 +619,7 @@ input {
 }
 
 .workspace {
-  grid-template-columns: minmax(0, 1fr) minmax(260px, 320px);
+  grid-template-columns: 1fr;
   border: none;
   background: rgba(255, 255, 255, 0.96);
   border-radius: 32px;
@@ -1213,7 +1229,6 @@ body.readonly-mode .upload-button {
   display: none;
 }
 
-/* Filter Bar */
 .filter-bar {
   display: flex;
   flex-wrap: wrap;
@@ -1224,6 +1239,8 @@ body.readonly-mode .upload-button {
   border: 1px solid rgba(209, 213, 219, 0.6);
   border-radius: 16px;
   margin-bottom: 18px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .filter-item {

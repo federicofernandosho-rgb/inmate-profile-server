@@ -119,6 +119,13 @@
                 <input id="statusDate" name="statusDate" type="date">
               </label>
             </div>
+            <aside class="photo-strip" aria-label="Main mugshot preview">
+              <div class="photo-frame">
+                <img id="mainPreview" alt="Inmate mugshot preview">
+                <span id="mainPreviewText">No photo</span>
+              </div>
+              <button class="secondary" type="button" id="openIntelModal">Gang &amp; Photos</button>
+            </aside>
           </div>
 
           <div class="form-grid">
@@ -175,14 +182,6 @@
             </div>
           </div>
         </form>
-
-        <aside class="photo-strip" aria-label="Main mugshot preview">
-          <div class="photo-frame">
-            <img id="mainPreview" alt="Inmate mugshot preview">
-            <span id="mainPreviewText">No photo</span>
-          </div>
-          <button class="secondary" type="button" id="openIntelModal">Gang & Photos</button>
-        </aside>
       </section>
 
       <nav class="actions" aria-label="Record actions">

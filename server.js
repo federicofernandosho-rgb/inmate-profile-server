@@ -15,6 +15,7 @@ const RECORDS_FILE = path.join(DATA_DIR, "records.json");
 const SECRET_FILE = path.join(DATA_DIR, "secret.txt");
 const MAX_BODY_BYTES = 60 * 1024 * 1024;
 const USE_MYSQL = Boolean(process.env.DB_HOST);
+const AUDIT_FILE = path.join(DATA_DIR, "audit.json");
 let dbPool = null;
 
 const MIME_TYPES = {
@@ -106,8 +107,37 @@ async function handleApi(req, res, url) {
     return;
   }
 
+  if (req.method === "GET" && url.pathname === "/api/audit") {
+    if (!canManageUsers(currentUser)) {
+      sendJson(res, 403, { error: "Admin access required" });
+      return;
+    }
+    const log = await readJson(AUDIT_FILE, []);
+    sendJson(res, 200, { log });
+    return;
+  }
+
+  if (req.method === "GET" && url.pathname === "/api/export/csv") {
+    const records = await getRecords();
+    const headers = ["inmateId","firstName","middleName","lastName","alias","dob","age","address","affiliation","gangAffiliation","comment","inPrison","admissionDate","dischargeDate"];
+    const csvRows = [headers.join(",")];
+    for (const r of records) {
+      csvRows.push(headers.map(h => csvCell(r[h])).join(","));
+    }
+    const csv = csvRows.join("\r\n");
+    res.writeHead(200, {
+      "Content-Type": "text/csv; charset=utf-8",
+      "Content-Disposition": `attachment; filename="inmates-${new Date().toISOString().slice(0,10)}.csv"`,
+      "Cache-Control": "no-store"
+    });
+    res.end(csv);
+    return;
+  }
+
   if (req.method === "GET" && url.pathname === "/api/records") {
-    sendJson(res, 200, { records: await getRecords() });
+    const recs = await getRecords();
+    await appendAudit({ action: "view_records", username: currentUser.username, userId: currentUser.id, timestamp: new Date().toISOString() });
+    sendJson(res, 200, { records: recs });
     return;
   }
 
@@ -120,6 +150,7 @@ async function handleApi(req, res, url) {
     const body = await readBody(req);
     const records = Array.isArray(body.records) ? body.records : [];
     await saveRecords(records);
+    await appendAudit({ action: body.auditAction || "update_records", username: currentUser.username, userId: currentUser.id, detail: body.auditDetail || "", timestamp: new Date().toISOString() });
     sendJson(res, 200, { records });
     return;
   }
@@ -139,8 +170,10 @@ async function handleApi(req, res, url) {
       return;
     }
 
+    const deleted = currentRecords[index];
     currentRecords.splice(index, 1);
     await saveRecords(currentRecords);
+    await appendAudit({ action: "delete_record", username: currentUser.username, userId: currentUser.id, detail: `ID ${deleted.inmateId} - ${deleted.firstName} ${deleted.lastName}`, timestamp: new Date().toISOString() });
     sendJson(res, 200, { records: currentRecords });
     return;
   }
@@ -238,11 +271,23 @@ async function ensureDataFiles() {
   await fs.mkdir(DATA_DIR, { recursive: true });
   await ensureJson(USERS_FILE, []);
   await ensureJson(RECORDS_FILE, defaultRecords());
+  await ensureJson(AUDIT_FILE, []);
 
   try {
     await fs.access(SECRET_FILE);
   } catch {
     await fs.writeFile(SECRET_FILE, crypto.randomBytes(48).toString("hex"), "utf8");
+  }
+}
+
+async function appendAudit(entry) {
+  try {
+    const log = await readJson(AUDIT_FILE, []);
+    log.push(entry);
+    if (log.length > 5000) log.splice(0, log.length - 5000);
+    await writeJson(AUDIT_FILE, log);
+  } catch {
+    // Never crash on audit failure
   }
 }
 
@@ -674,6 +719,14 @@ function mysqlDateTime(value) {
 function getMimeType(dataUrl) {
   const match = String(dataUrl || "").match(/^data:([^;]+);/);
   return match ? match[1] : "image/jpeg";
+}
+
+function csvCell(value) {
+  const str = String(value === null || value === undefined ? "" : value);
+  if (str.includes(",") || str.includes('"') || str.includes("\n")) {
+    return `"${str.replace(/"/g, '""')}"`;
+  }
+  return str;
 }
 
 function sendJson(res, status, payload) {

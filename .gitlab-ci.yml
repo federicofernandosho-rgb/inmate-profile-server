@@ -1,0 +1,105 @@
+# GitLab CI/CD Pipeline - Inmate Profile Server
+# Deploys automatically to your server on every merge to main.
+#
+# Required CI/CD Variables (Settings > CI/CD > Variables):
+#   SSH_PRIVATE_KEY   - Private SSH key with access to your server
+#   DEPLOY_HOST       - Server IP or hostname (e.g. 192.168.1.10)
+#   DEPLOY_USER       - SSH user on the server (e.g. ubuntu, root)
+#   DEPLOY_PATH       - App directory on the server (e.g. /opt/inmate-profile)
+#   SERVICE_NAME      - pm2 process name (default: inmate-profile)
+#   PORT              - App port (default: 3000)
+
+stages:
+  - test
+  - deploy
+
+# ── Test stage ────────────────────────────────────────────────────────────────
+test:lint:
+  stage: test
+  image: node:20-alpine
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH == "main"'
+    - if: '$CI_COMMIT_BRANCH == "feature/new-features"'
+  script:
+    - node --check server.js
+    - node --check app.js
+    - echo "Syntax check passed."
+  cache:
+    key: node-modules
+    paths:
+      - node_modules/
+
+test:install:
+  stage: test
+  image: node:20-alpine
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH == "main"'
+  script:
+    - npm ci --production
+    - echo "Dependencies installed successfully."
+  cache:
+    key: node-modules
+    paths:
+      - node_modules/
+
+# ── Deploy stage ───────────────────────────────────────────────────────────────
+deploy:production:
+  stage: deploy
+  image: alpine:3.19
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      when: on_success
+  environment:
+    name: production
+    url: http://$DEPLOY_HOST:${PORT:-3000}
+  before_script:
+    - apk add --no-cache openssh-client bash
+    - eval $(ssh-agent -s)
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+    - ssh-keyscan -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts
+    - chmod 644 ~/.ssh/known_hosts
+  script:
+    - |
+      ssh -o StrictHostKeyChecking=no "${DEPLOY_USER}@${DEPLOY_HOST}" bash -s << 'ENDSSH'
+        set -euo pipefail
+        APP_DIR="${DEPLOY_PATH:-/opt/inmate-profile}"
+        SERVICE_NAME="${SERVICE_NAME:-inmate-profile}"
+        PORT="${PORT:-3000}"
+
+        echo "==> Pulling latest code from main..."
+        cd "$APP_DIR"
+        git fetch origin
+        git checkout main
+        git pull origin main
+
+        echo "==> Backing up data..."
+        if [ -d data ]; then
+          ts=$(date -u +%Y%m%dT%H%M%SZ)
+          mkdir -p backups
+          tar -czf "backups/data-backup-$ts.tar.gz" data
+          echo "Backup saved: backups/data-backup-$ts.tar.gz"
+        fi
+
+        echo "==> Installing dependencies..."
+        npm ci --production
+
+        echo "==> Restarting app with pm2..."
+        if command -v pm2 >/dev/null 2>&1; then
+          if pm2 describe "$SERVICE_NAME" >/dev/null 2>&1; then
+            pm2 restart "$SERVICE_NAME" --update-env
+          else
+            pm2 start server.js --name "$SERVICE_NAME" -- PORT=$PORT
+          fi
+          pm2 save
+          echo "==> Deploy complete. App running as: $SERVICE_NAME"
+        else
+          echo "pm2 not found. Trying systemd..."
+          sudo systemctl restart "$SERVICE_NAME" || echo "systemd restart failed - restart manually."
+        fi
+      ENDSSH
+  after_script:
+    - echo "Pipeline finished for commit $CI_COMMIT_SHORT_SHA"

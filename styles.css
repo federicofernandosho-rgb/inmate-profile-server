@@ -1246,45 +1246,6 @@ body.readonly-mode .upload-button {
   min-width: 120px;
 }
 
-/* Pagination */
-.pagination-controls {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.page-btn {
-  min-width: 36px;
-  min-height: 30px;
-  padding: 0 10px;
-  font-size: 14px;
-}
-
-.page-indicator {
-  font-size: 13px;
-  color: #475569;
-  white-space: nowrap;
-  min-width: 60px;
-  text-align: center;
-}
-
-.page-size-label {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  color: #475569;
-}
-
-.page-size-label select {
-  height: 28px;
-  font-size: 12px;
-  padding: 2px 6px;
-  border-radius: 6px;
-  border: 1px solid var(--field-border);
-  background: var(--field);
-}
-
 /* PDF actions */
 .pdf-actions {
   display: flex;

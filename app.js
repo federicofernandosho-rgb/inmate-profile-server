@@ -115,14 +115,7 @@ document.querySelector("#auditApplyFilter").addEventListener("click", renderAudi
 document.querySelector("#applyFilter").addEventListener("click", applyRecordFilters);
 document.querySelector("#clearFilter").addEventListener("click", clearRecordFilters);
 
-// Pagination
-document.querySelector("#firstPage").addEventListener("click", () => { currentPage = 1; renderCurrentRecord(); });
-document.querySelector("#lastPage").addEventListener("click", () => { currentPage = totalPages(); renderCurrentRecord(); });
-document.querySelector("#pageSizeSelect").addEventListener("change", e => {
-  pageSize = e.target.value === "all" ? Infinity : Number(e.target.value);
-  currentPage = 1;
-  renderCurrentRecord();
-});
+
 document.querySelector("#saveIntel").addEventListener("click", saveIntelDetails);
 document.querySelectorAll(".remove-image").forEach(button => {
   button.addEventListener("click", () => removeFaceImage(button.dataset.imageKey));
@@ -539,11 +532,6 @@ function updateStatusDateVisibility() {
 }
 
 // ── Pagination & Filtering ────────────────────────────────────────────────────
-function totalPages() {
-  if (pageSize === Infinity) return 1;
-  return Math.max(1, Math.ceil(filteredRecords.length / pageSize));
-}
-
 function applyFiltersToRecords() {
   filteredRecords = records.filter(r => {
     if (activeFilters.status === "in" && !r.inPrison) return false;
@@ -590,10 +578,6 @@ function clearRecordFilters() {
 }
 
 function updateStatus() {
-  const tp = totalPages();
-  const indicator = document.querySelector("#pageIndicator");
-  if (indicator) indicator.textContent = `Page ${currentPage} / ${tp}`;
-
   const pool = filteredRecords.length ? filteredRecords : records;
   const posInPool = pool.indexOf(records[currentIndex]);
   const displayPos = posInPool >= 0 ? posInPool + 1 : currentIndex + 1;

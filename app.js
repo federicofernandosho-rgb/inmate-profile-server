@@ -889,8 +889,8 @@ function renderMainHistoryTimeline(history) {
   allSorted.forEach(item => {
     const row = document.createElement("tr");
     row.innerHTML = `
-      <td><span class="ht-badge ht-badge-${item.type === "Admitted" ? "in" : "out'}">${escapeHtml(item.type)}</span></td>
-      <td>${item.date ? formatDate(item.date) : "—"}</td>
+      <td><span class="ht-badge ht-badge-${item.type === "Admitted" ? "in" : "out"}">${escapeHtml(item.type)}</span></td>
+      <td>${item.date ? formatDate(item.date) : "\u2014"}</td>
       <td>${escapeHtml(item.username || "system")}</td>
       <td>${item.timestamp ? new Date(item.timestamp).toLocaleString() : "—"}</td>
     `;

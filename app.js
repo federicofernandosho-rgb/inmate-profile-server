@@ -816,27 +816,89 @@ function renderMainHistoryTimeline(history) {
     return;
   }
 
-  const sortedHistory = [...history].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+  // Sort oldest to newest to find first/last correctly
+  const sorted = [...history].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
 
-  sortedHistory.forEach(item => {
-    const el = document.createElement("div");
-    el.className = "timeline-item";
+  const admissions = sorted.filter(e => e.type === "Admitted");
+  const discharges = sorted.filter(e => e.type === "Discharged");
 
-    const content = document.createElement("div");
-    content.className = "timeline-content";
+  const lastAdmission   = admissions.at(-1);
+  const lastDischarge   = discharges.at(-1);
+  const currentAdmission = admissions.at(-1);
+  const currentDischarge = discharges.at(-1);
 
-    const header = document.createElement("div");
-    header.className = "timeline-header";
-    header.textContent = item.type;
+  // Build table
+  const table = document.createElement("table");
+  table.className = "history-table";
 
-    const date = document.createElement("div");
-    date.className = "timeline-date";
-    date.textContent = item.date ? formatDate(item.date) : "No date set";
+  // Header
+  const thead = document.createElement("thead");
+  thead.innerHTML = `
+    <tr>
+      <th>Last Admitted into Prison</th>
+      <th>Last Checked Out of Prison</th>
+      <th>Current Date Added to Prison</th>
+      <th>Current Date Discharged</th>
+    </tr>
+  `;
+  table.append(thead);
 
-    content.append(header, date);
-    el.append(content);
-    mainHistoryTimeline.append(el);
+  // Body - one summary row
+  const tbody = document.createElement("tbody");
+  const tr = document.createElement("tr");
+
+  const cell = (entry) => {
+    const td = document.createElement("td");
+    if (entry) {
+      td.innerHTML = `
+        <span class="ht-date">${entry.date ? formatDate(entry.date) : "—"}</span>
+        <span class="ht-meta">by ${escapeHtml(entry.username || "system")}</span>
+      `;
+    } else {
+      td.innerHTML = `<span class="ht-none">—</span>`;
+    }
+    return td;
+  };
+
+  tr.append(
+    cell(lastAdmission),
+    cell(lastDischarge),
+    cell(currentAdmission),
+    cell(currentDischarge)
+  );
+  tbody.append(tr);
+  table.append(tbody);
+
+  // Full history rows below
+  const allSorted = [...history].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+  const detailTable = document.createElement("table");
+  detailTable.className = "history-table history-detail-table";
+
+  const detailHead = document.createElement("thead");
+  detailHead.innerHTML = `
+    <tr>
+      <th>Action</th>
+      <th>Date</th>
+      <th>Recorded By</th>
+      <th>Timestamp</th>
+    </tr>
+  `;
+  detailTable.append(detailHead);
+
+  const detailBody = document.createElement("tbody");
+  allSorted.forEach(item => {
+    const row = document.createElement("tr");
+    row.innerHTML = `
+      <td><span class="ht-badge ht-badge-${item.type === "Admitted" ? "in" : "out'}">${escapeHtml(item.type)}</span></td>
+      <td>${item.date ? formatDate(item.date) : "—"}</td>
+      <td>${escapeHtml(item.username || "system")}</td>
+      <td>${item.timestamp ? new Date(item.timestamp).toLocaleString() : "—"}</td>
+    `;
+    detailBody.append(row);
   });
+  detailTable.append(detailBody);
+
+  mainHistoryTimeline.append(table, detailTable);
 }
 
 function openIntelModal() {

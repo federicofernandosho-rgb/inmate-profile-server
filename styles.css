@@ -1294,6 +1294,85 @@ body.readonly-mode .upload-button {
   justify-self: end;
 }
 
+/* Delete Confirmation Dialog */
+.confirm-dialog {
+  border: none;
+  padding: 0;
+  background: transparent;
+  border-radius: 24px;
+}
+
+.confirm-dialog::backdrop {
+  background: rgba(14, 18, 24, 0.65);
+  backdrop-filter: blur(3px);
+}
+
+.confirm-modal {
+  background: #ffffff;
+  border-radius: 24px;
+  padding: 36px 32px 28px;
+  width: min(420px, calc(100vw - 40px));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 32px 80px rgba(15, 23, 42, 0.22);
+  text-align: center;
+}
+
+.confirm-icon {
+  font-size: 48px;
+  color: #d14343;
+  line-height: 1;
+}
+
+.confirm-title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.confirm-message {
+  margin: 0;
+  font-size: 15px;
+  color: #475569;
+  line-height: 1.5;
+}
+
+.confirm-warning {
+  margin: 0;
+  font-size: 13px;
+  color: #d14343;
+}
+
+.confirm-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+  width: 100%;
+  justify-content: center;
+}
+
+.confirm-actions button {
+  min-width: 120px;
+  min-height: 40px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+body.dark-mode .confirm-modal {
+  background: #1e293b;
+}
+
+body.dark-mode .confirm-title {
+  color: var(--ink);
+}
+
+body.dark-mode .confirm-message {
+  color: var(--muted);
+}
+
 /* Audit Log Dialog */
 .audit-dialog {
   width: min(760px, calc(100vw - 28px));

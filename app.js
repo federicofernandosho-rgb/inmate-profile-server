@@ -660,11 +660,12 @@ async function deleteRecord() {
   }
 
   const record = records[currentIndex];
-  const name = [record.firstName, record.lastName].filter(Boolean).join(" ") || record.inmateId || "this record";
+  const name = [record.firstName, record.lastName].filter(Boolean).join(" ") || "Unknown";
+  const id = record.inmateId || "N/A";
 
-  if (!confirm(`Are you sure you want to delete the record for "${name}"? This cannot be undone.`)) {
-    return;
-  }
+  // Show custom confirmation dialog
+  const confirmed = await showDeleteConfirm(name, id);
+  if (!confirmed) return;
 
   try {
     const result = await apiFetch("/api/records", {
@@ -682,11 +683,39 @@ async function deleteRecord() {
     }
 
     isNewRecord = false;
+    applyFiltersToRecords();
     renderCurrentRecord();
     showMessage("Inmate record deleted.", "success");
   } catch (error) {
     showMessage(error.message || "Failed to delete record.", "error");
   }
+}
+
+function showDeleteConfirm(name, id) {
+  return new Promise(resolve => {
+    const dialog = document.getElementById("deleteConfirmDialog");
+    const message = document.getElementById("deleteConfirmMessage");
+    const confirmBtn = document.getElementById("deleteConfirmBtn");
+    const cancelBtn = document.getElementById("deleteCancelBtn");
+
+    message.textContent = `You are about to delete the record for ${name} (ID: ${id}).`;
+
+    const cleanup = () => {
+      confirmBtn.removeEventListener("click", onConfirm);
+      cancelBtn.removeEventListener("click", onCancel);
+      dialog.removeEventListener("cancel", onCancel);
+      dialog.close();
+    };
+
+    const onConfirm = () => { cleanup(); resolve(true); };
+    const onCancel = () => { cleanup(); resolve(false); };
+
+    confirmBtn.addEventListener("click", onConfirm);
+    cancelBtn.addEventListener("click", onCancel);
+    dialog.addEventListener("cancel", onCancel);
+
+    dialog.showModal();
+  });
 }
 
 async function createNewRecord() {

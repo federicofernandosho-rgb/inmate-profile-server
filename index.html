@@ -61,6 +61,13 @@
         <form id="inmateForm" autocomplete="off">
           <div class="filter-bar" id="filterBar">
             <label class="filter-item">
+              <span>Search by ID</span>
+              <div class="search-bar">
+                <input id="searchInput" name="searchInput" type="text" inputmode="numeric" maxlength="7" placeholder="Search by ID">
+                <button id="searchButton" type="button">Search</button>
+              </div>
+            </label>
+            <label class="filter-item">
               <span>Status</span>
               <select id="filterStatus">
                 <option value="all">All</option>
@@ -90,10 +97,6 @@
 
           <div class="id-status-row">
             <div class="search-and-id">
-              <div class="search-bar">
-                <input id="searchInput" name="searchInput" type="text" inputmode="numeric" maxlength="7" placeholder="Search by ID">
-                <button id="searchButton" type="button">Search</button>
-              </div>
               <label class="field inmate-id">
                 <span>Inmate ID</span>
                 <input id="inmateId" name="inmateId" type="text" inputmode="numeric" maxlength="7" required>

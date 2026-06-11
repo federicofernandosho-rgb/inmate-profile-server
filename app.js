@@ -853,13 +853,14 @@ async function saveIntelDetails() {
   }
 
   const record = getFormRecord();
+  const name = fullName(record) || record.inmateId || "Unknown";
 
   // Save current record (images are updated via file inputs already)
   records[currentIndex] = record;
-  await persistRecords();
+  await persistRecords("update_records", `Images updated for ID ${record.inmateId}`);
   renderCurrentRecord();
   intelDialog.close();
-  showMessage("Image intel saved.");
+  showMessage(`Images saved for ${name}.`, "success");
 }
 
 async function removeFaceImage(key) {

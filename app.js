@@ -157,6 +157,20 @@ window.addEventListener("afterprint", () => {
   reportTemplate.innerHTML = "";
 });
 
+// Photo hover popover
+const photoStrip = document.querySelector(".photo-strip");
+const photoPopover = document.querySelector(".photo-views-popover");
+if (photoStrip && photoPopover) {
+  photoStrip.addEventListener("mouseenter", () => {
+    if (!document.querySelector(".photo-frame.has-no-photos")) {
+      photoPopover.classList.add("popover-visible");
+    }
+  });
+  photoStrip.addEventListener("mouseleave", () => {
+    photoPopover.classList.remove("popover-visible");
+  });
+}
+
 initializeAuth();
 
 async function initializeAuth() {
@@ -463,12 +477,32 @@ function renderCurrentRecord() {
   const mugshot = getMainMugshot(record);
   mainPreview.src = mugshot;
   mainPreviewText.textContent = mugshot ? "" : "No photo";
+
+  const images = normalizeImages(record.images);
+  const hoverFront = document.querySelector("#hoverFrontPreview");
+  const hoverRight = document.querySelector("#hoverRightPreview");
+  const hoverLeft = document.querySelector("#hoverLeftPreview");
+  if (hoverFront && hoverRight && hoverLeft) {
+    hoverFront.setAttribute("src", images.frontFace || "");
+    hoverRight.setAttribute("src", images.rightFace || "");
+    hoverLeft.setAttribute("src", images.leftFace || "");
+    toggleEmptyHoverIndicator(hoverFront, "No Front Photo");
+    toggleEmptyHoverIndicator(hoverRight, "No Right Photo");
+    toggleEmptyHoverIndicator(hoverLeft, "No Left Photo");
+  }
+
+  const photoFrame = document.querySelector(".photo-frame");
+  if (photoFrame) {
+    photoFrame.classList.toggle("has-no-photos", !mugshot);
+  }
+
   renderMainHistoryTimeline(record.statusHistory || []);
   updateStatus();
 
   // Hide Update, Next, Previous, New buttons when creating a new record
   // Show Cancel button when creating a new record
   const updateButton = document.querySelector("#updateRecord");
+  const saveButton = document.querySelector("#saveRecord");
   const nextButton = document.querySelector("#nextRecord");
   const prevButton = document.querySelector("#previousRecord");
   const newButton = document.querySelector("#newRecord");
@@ -476,12 +510,14 @@ function renderCurrentRecord() {
   
   if (isNewRecord) {
     updateButton.classList.add("hidden");
+    saveButton.classList.remove("hidden");
     nextButton.classList.add("hidden");
     prevButton.classList.add("hidden");
     newButton.classList.add("hidden");
     cancelButton.classList.remove("hidden");
   } else {
     updateButton.classList.remove("hidden");
+    saveButton.classList.add("hidden");
     nextButton.classList.remove("hidden");
     prevButton.classList.remove("hidden");
     newButton.classList.remove("hidden");
@@ -607,11 +643,13 @@ async function saveNewRecord() {
   applyStatusHistory(record);
 
   const isBlankSlot = records.length === 1 && !records[0].inmateId && !records[0].firstName;
-  const currentIsBlank = !records[currentIndex]?.inmateId && !records[currentIndex]?.firstName;
-  if (!isBlankSlot && !currentIsBlank && records.some(item => item.inmateId === record.inmateId)) {
+  const duplicate = records.some((item, index) => item.inmateId === record.inmateId && index !== currentIndex);
+  if (!isBlankSlot && duplicate) {
     showMessage("That Inmate ID already exists. Use Update Record for an existing inmate.");
     return;
   }
+
+  const currentIsBlank = !records[currentIndex]?.inmateId && !records[currentIndex]?.firstName;
 
   if (isBlankSlot || currentIsBlank) {
     records[currentIndex] = record;
@@ -1371,6 +1409,29 @@ function updateFacePreviews(record) {
   frontFacePreview.src = images.frontFace;
   rightFacePreview.src = images.rightFace;
   leftFacePreview.src = images.leftFace;
+}
+
+function toggleEmptyHoverIndicator(imgElement, placeholderText) {
+  const card = imgElement.closest(".popover-view-card");
+  if (!card) return;
+  let placeholder = card.querySelector(".popover-view-card-empty");
+  
+  const rawSrc = imgElement.getAttribute("src");
+  if (!rawSrc) {
+    imgElement.classList.add("hidden");
+    if (!placeholder) {
+      placeholder = document.createElement("div");
+      placeholder.className = "popover-view-card-empty";
+      card.insertBefore(placeholder, imgElement);
+    }
+    placeholder.textContent = placeholderText;
+    placeholder.classList.remove("hidden");
+  } else {
+    imgElement.classList.remove("hidden");
+    if (placeholder) {
+      placeholder.classList.add("hidden");
+    }
+  }
 }
 
 function fileToDataUrl(file) {

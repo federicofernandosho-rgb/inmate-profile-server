@@ -2252,3 +2252,113 @@ dialog.tattoo-desc-modal-overlay[open] {
 .tattoo-desc-actions .btn-save:hover {
   background: #2563eb;
 }
+
+/* Inmate Photo Hover Previews Popover */
+.photo-strip {
+  position: relative;
+}
+
+.photo-views-popover {
+  position: absolute;
+  right: calc(100% + 16px);
+  top: 0;
+  transform: translateX(-8px);
+  background: rgba(255, 255, 255, 0.97);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(209, 213, 219, 0.7);
+  border-radius: 20px;
+  padding: 18px;
+  box-shadow: 0 24px 48px rgba(15, 23, 42, 0.15), 0 4px 12px rgba(15, 23, 42, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1), transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 200;
+  width: 560px;
+  white-space: nowrap;
+}
+
+body.dark-mode .photo-views-popover {
+  background: rgba(15, 23, 42, 0.97);
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.4);
+}
+
+.photo-views-popover.popover-visible {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateX(0);
+}
+
+.popover-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink);
+  opacity: 0.8;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 4px;
+}
+
+.popover-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.popover-view-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  background: rgba(0, 0, 0, 0.03);
+  border-radius: 14px;
+  padding: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+body.dark-mode .popover-view-card {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.05);
+}
+
+.popover-view-card img {
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  object-fit: cover;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.popover-view-card img.hidden {
+  display: none !important;
+}
+
+.popover-view-card .hover-view-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  text-align: center;
+}
+
+.popover-view-card-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  background: rgba(0, 0, 0, 0.05);
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 500;
+  border-radius: 8px;
+  text-align: center;
+  padding: 12px;
+  box-sizing: border-box;
+}
+
+body.dark-mode .popover-view-card-empty {
+  background: rgba(255, 255, 255, 0.05);
+}

@@ -216,9 +216,7 @@
           <button type="button" id="previousRecord">Previous</button>
           <button type="button" id="nextRecord">Next</button>
         </div>
-        <div class="pdf-actions">
           <button type="button" id="generatePdf">Generate PDF</button>
-          <button type="button" class="secondary" id="printAllRecords">Print All</button>
         </div>
       </nav>
 
@@ -376,6 +374,71 @@
     </dialog>
 
     <section id="reportTemplate" class="report-template" aria-hidden="true"></section>
+
+    <!-- Admission Details Dialog -->
+    <dialog id="admissionDialog" class="users-dialog">
+      <div class="modal-shell">
+        <header class="modal-header">
+          <div>
+            <h2>Admission Details</h2>
+            <p>Enter details for the inmate's admission.</p>
+          </div>
+          <button type="button" class="icon-button" id="closeAdmissionModal" aria-label="Close modal">X</button>
+        </header>
+        <section class="modal-body">
+          <form id="admissionForm" class="user-form">
+            <label class="login-field">
+              <span>Admission Date</span>
+              <input id="modalAdmissionDate" type="date" required>
+            </label>
+            <label class="login-field">
+              <span>Charge Admitted On</span>
+              <input id="modalAdmissionCharge" type="text" autocomplete="off" required>
+            </label>
+            <div style="display: flex; gap: 1rem; margin-top: 1.5rem; justify-content: flex-end;">
+              <button type="button" class="secondary" id="admissionCancelBtn">Cancel</button>
+              <button type="submit" id="admissionConfirmBtn">Confirm</button>
+            </div>
+          </form>
+        </section>
+      </div>
+    </dialog>
+
+    <!-- Discharge Details Dialog -->
+    <dialog id="dischargeDialog" class="users-dialog">
+      <div class="modal-shell">
+        <header class="modal-header">
+          <div>
+            <h2>Discharge Details</h2>
+            <p>Enter details for the inmate's discharge.</p>
+          </div>
+          <button type="button" class="icon-button" id="closeDischargeModal" aria-label="Close modal">X</button>
+        </header>
+        <section class="modal-body">
+          <form id="dischargeForm" class="user-form">
+            <label class="login-field">
+              <span>Discharge Date</span>
+              <input id="modalDischargeDate" type="date" required>
+            </label>
+            <label class="login-field">
+              <span>Charge Incarcerated For</span>
+              <input id="modalDischargeCharge" type="text" autocomplete="off" required>
+            </label>
+            <label class="login-field">
+              <span>Discharge Status</span>
+              <select id="modalDischargeStatus" required>
+                <option value="Remanded">Remanded</option>
+                <option value="Convicted">Convicted</option>
+              </select>
+            </label>
+            <div style="display: flex; gap: 1rem; margin-top: 1.5rem; justify-content: flex-end;">
+              <button type="button" class="secondary" id="dischargeCancelBtn">Cancel</button>
+              <button type="submit" id="dischargeConfirmBtn">Confirm</button>
+            </div>
+          </form>
+        </section>
+      </div>
+    </dialog>
 
     <dialog id="auditDialog" class="audit-dialog">
       <div class="modal-shell">

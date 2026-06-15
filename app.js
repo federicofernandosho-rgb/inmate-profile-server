@@ -80,6 +80,11 @@ const reportTemplate = document.querySelector("#reportTemplate");
 const usersDialog = document.querySelector("#usersDialog");
 const userList = document.querySelector("#userList");
 const userMessage = document.querySelector("#userMessage");
+const admissionDialog = document.querySelector("#admissionDialog");
+const dischargeDialog = document.querySelector("#dischargeDialog");
+const admissionForm = document.querySelector("#admissionForm");
+const dischargeForm = document.querySelector("#dischargeForm");
+let pendingStatusEvent = null;
 
 loginForm.addEventListener("submit", handleLogin);
 firstUserForm.addEventListener("submit", handleFirstUserCreate);
@@ -94,8 +99,10 @@ document.querySelector("#saveRecord").addEventListener("click", saveNewRecord);
 document.querySelector("#cancelRecord").addEventListener("click", cancelNewRecord);
 document.querySelector("#updateRecord").addEventListener("click", updateCurrentRecord);
 document.querySelector("#deleteRecord").addEventListener("click", deleteRecord);
-document.querySelector("#generatePdf").addEventListener("click", generatePdfReport);
-document.querySelector("#printAllRecords").addEventListener("click", printAllRecords);
+document.querySelector("#generatePdf").addEventListener("click", () => {
+  document.body.classList.add("printing");
+  window.print();
+});
 document.querySelector("#openIntelModal").addEventListener("click", openIntelModal);
 document.querySelector("#closeModal").addEventListener("click", () => intelDialog.close());
 
@@ -121,8 +128,83 @@ document.querySelectorAll(".remove-image").forEach(button => {
   button.addEventListener("click", () => removeFaceImage(button.dataset.imageKey));
 });
 document.querySelector("#frontFaceUpload").addEventListener("change", event => setImage(event, "frontFace"));
-fields.incarcerationIn.addEventListener("change", updateStatusDateVisibility);
-fields.incarcerationOut.addEventListener("change", updateStatusDateVisibility);
+fields.incarcerationIn.addEventListener("click", handleIncarcerationClick);
+fields.incarcerationOut.addEventListener("click", handleIncarcerationClick);
+
+function handleIncarcerationClick(e) {
+  if (!canEdit()) {
+    e.preventDefault();
+    return;
+  }
+  
+  e.preventDefault(); // Stop immediate check
+  const targetId = e.target.id;
+  const rec = records[currentIndex] || emptyRecord();
+  
+  if (targetId === "incarcerationIn") {
+    admissionForm.reset();
+    if (rec.inPrison) {
+      document.querySelector("#modalAdmissionDate").value = rec.admissionDate || "";
+      const lastEvent = rec.statusHistory && rec.statusHistory.slice().reverse().find(ev => ev.type === "Admitted");
+      if (lastEvent && lastEvent.charge) {
+        document.querySelector("#modalAdmissionCharge").value = lastEvent.charge;
+      }
+    }
+    admissionDialog.showModal();
+  } else {
+    dischargeForm.reset();
+    if (!rec.inPrison) {
+      document.querySelector("#modalDischargeDate").value = rec.dischargeDate || "";
+      const lastEvent = rec.statusHistory && rec.statusHistory.slice().reverse().find(ev => ev.type === "Discharged");
+      if (lastEvent) {
+        if (lastEvent.charge) document.querySelector("#modalDischargeCharge").value = lastEvent.charge;
+        if (lastEvent.dischargeStatus) document.querySelector("#modalDischargeStatus").value = lastEvent.dischargeStatus;
+      }
+    }
+    dischargeDialog.showModal();
+  }
+}
+
+document.querySelector("#closeAdmissionModal").addEventListener("click", () => admissionDialog.close());
+document.querySelector("#admissionCancelBtn").addEventListener("click", () => admissionDialog.close());
+admissionForm.addEventListener("submit", (e) => {
+  e.preventDefault();
+  fields.incarcerationIn.checked = true;
+  fields.incarcerationOut.checked = false;
+  
+  pendingStatusEvent = {
+    type: "Admitted",
+    date: document.querySelector("#modalAdmissionDate").value,
+    charge: document.querySelector("#modalAdmissionCharge").value,
+    timestamp: new Date().toISOString(),
+    username: currentUser?.username || "system"
+  };
+  
+  fields.statusDate.value = pendingStatusEvent.date;
+  updateStatusDateVisibility();
+  admissionDialog.close();
+});
+
+document.querySelector("#closeDischargeModal").addEventListener("click", () => dischargeDialog.close());
+document.querySelector("#dischargeCancelBtn").addEventListener("click", () => dischargeDialog.close());
+dischargeForm.addEventListener("submit", (e) => {
+  e.preventDefault();
+  fields.incarcerationIn.checked = false;
+  fields.incarcerationOut.checked = true;
+  
+  pendingStatusEvent = {
+    type: "Discharged",
+    date: document.querySelector("#modalDischargeDate").value,
+    charge: document.querySelector("#modalDischargeCharge").value,
+    dischargeStatus: document.querySelector("#modalDischargeStatus").value,
+    timestamp: new Date().toISOString(),
+    username: currentUser?.username || "system"
+  };
+  
+  fields.statusDate.value = pendingStatusEvent.date;
+  updateStatusDateVisibility();
+  dischargeDialog.close();
+});
 document.querySelector("#rightFaceUpload").addEventListener("change", event => setImage(event, "rightFace"));
 document.querySelector("#leftFaceUpload").addEventListener("change", event => setImage(event, "leftFace"));
 document.querySelector("#tattooUpload").addEventListener("change", addTattooImages);
@@ -499,14 +581,17 @@ function renderCurrentRecord() {
   renderMainHistoryTimeline(record.statusHistory || []);
   updateStatus();
 
-  // Hide Update, Next, Previous, New buttons when creating a new record
-  // Show Cancel button when creating a new record
+  // Hide all actions except Save Record when creating a new record
   const updateButton = document.querySelector("#updateRecord");
   const saveButton = document.querySelector("#saveRecord");
   const nextButton = document.querySelector("#nextRecord");
   const prevButton = document.querySelector("#previousRecord");
   const newButton = document.querySelector("#newRecord");
   const cancelButton = document.querySelector("#cancelRecord");
+  const intelButton = document.querySelector("#openIntelModal");
+  const generatePdfButton = document.querySelector("#generatePdf");
+  const deleteButton = document.querySelector("#deleteRecord");
+  const filterBar = document.querySelector("#filterBar");
 
   if (isNewRecord) {
     updateButton.classList.add("hidden");
@@ -515,6 +600,10 @@ function renderCurrentRecord() {
     prevButton.classList.add("hidden");
     newButton.classList.add("hidden");
     cancelButton.classList.remove("hidden");
+    intelButton.classList.add("hidden");
+    generatePdfButton.classList.add("hidden");
+    deleteButton.classList.add("hidden");
+    if (filterBar) filterBar.classList.add("hidden");
   } else {
     updateButton.classList.remove("hidden");
     saveButton.classList.add("hidden");
@@ -522,6 +611,10 @@ function renderCurrentRecord() {
     prevButton.classList.remove("hidden");
     newButton.classList.remove("hidden");
     cancelButton.classList.add("hidden");
+    intelButton.classList.remove("hidden");
+    generatePdfButton.classList.remove("hidden");
+    deleteButton.classList.toggle("hidden", !canManageUsers());
+    if (filterBar) filterBar.classList.remove("hidden");
   }
 }
 
@@ -547,10 +640,19 @@ function getStatusChangeEvent(record, previousRecord) {
 
 function applyStatusHistory(record) {
   const previousRecord = records[currentIndex] || emptyRecord();
-  const event = getStatusChangeEvent(record, previousRecord);
-  if (!event) return;
-
-  record.statusHistory = [...(previousRecord.statusHistory || []), event];
+  
+  if (pendingStatusEvent) {
+    record.statusHistory = [...(previousRecord.statusHistory || []), pendingStatusEvent];
+    pendingStatusEvent = null; // consume it
+  } else {
+    // Fallback if they just changed the date without clicking radio (e.g., direct edit of statusDate)
+    const event = getStatusChangeEvent(record, previousRecord);
+    if (event) {
+      record.statusHistory = [...(previousRecord.statusHistory || []), event];
+    } else {
+      record.statusHistory = previousRecord.statusHistory || [];
+    }
+  }
 }
 
 function getStatusDateLabel() {
@@ -787,6 +889,7 @@ function cancelNewRecord() {
   }
 
   isNewRecord = false;
+  pendingStatusEvent = null;
   renderCurrentRecord();
   showMessage("New inmate cancelled.", "info");
 }
@@ -917,6 +1020,7 @@ function renderMainHistoryTimeline(history) {
     <tr>
       <th>Action</th>
       <th>Date</th>
+      <th>Details</th>
       <th>Recorded By</th>
       <th>Timestamp</th>
     </tr>
@@ -926,9 +1030,16 @@ function renderMainHistoryTimeline(history) {
   const detailBody = document.createElement("tbody");
   allSorted.forEach(item => {
     const row = document.createElement("tr");
+    
+    let detailsParts = [];
+    if (item.charge) detailsParts.push(`Charge: ${escapeHtml(item.charge)}`);
+    if (item.dischargeStatus) detailsParts.push(`Status: ${escapeHtml(item.dischargeStatus)}`);
+    const detailsHtml = detailsParts.length ? detailsParts.join(" | ") : "—";
+
     row.innerHTML = `
       <td><span class="ht-badge ht-badge-${item.type === "Admitted" ? "in" : "out"}">${escapeHtml(item.type)}</span></td>
       <td>${item.date ? formatDate(item.date) : "\u2014"}</td>
+      <td>${detailsHtml}</td>
       <td>${escapeHtml(item.username || "system")}</td>
       <td>${item.timestamp ? new Date(item.timestamp).toLocaleString() : "—"}</td>
     `;
@@ -1641,23 +1752,7 @@ async function renderAuditList() {
   }
 }
 
-// ── Print All Records ────────────────────────────────────────────────────────
-function printAllRecords() {
-  const pool = filteredRecords.length ? filteredRecords : records;
-  if (!pool.length) {
-    showMessage("No records to print.");
-    return;
-  }
 
-  const reportTemplate = document.querySelector("#reportTemplate");
-  reportTemplate.innerHTML = pool.map((record, i) => {
-    const divider = i < pool.length - 1 ? '<div class="report-page-break"></div>' : "";
-    return buildReportMarkup(record) + divider;
-  }).join("");
-
-  document.body.classList.add("printing");
-  window.print();
-}
 
 function escapeHtml(value) {
   return String(value || "")

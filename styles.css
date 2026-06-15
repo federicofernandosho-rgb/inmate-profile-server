@@ -36,9 +36,14 @@ body.dark-mode {
 body.dark-mode .app-header,
 body.dark-mode .workspace,
 body.dark-mode .login-card,
-body.dark-mode .modal-shell {
+body.dark-mode .modal-shell,
+body.dark-mode .login-field {
   background: rgba(30, 41, 59, 0.97) !important;
   color: var(--ink);
+}
+
+body.dark-mode .login-field {
+  border-color: var(--field-border);
 }
 
 body.dark-mode input,

@@ -956,7 +956,9 @@ async function showNextRecord() {
 function renderMainHistoryTimeline(history) {
   mainHistoryTimeline.innerHTML = "";
 
-  if (!history || !history.length) {
+  const safeHistory = (history || []).filter(Boolean);
+
+  if (!safeHistory.length) {
     const empty = document.createElement("div");
     empty.className = "history-empty";
     empty.textContent = "No status changes recorded.";
@@ -964,61 +966,61 @@ function renderMainHistoryTimeline(history) {
     return;
   }
 
-  // Sort oldest to newest to find first/last correctly
-  const sorted = [...history].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+  const getEventTime = item => {
+    const parsed = Date.parse(item.timestamp || "");
+    return Number.isNaN(parsed) ? 0 : parsed;
+  };
+  const formatEventDate = value => formatDate(value) || "Not recorded";
+  const formatEventDateTime = value => {
+    const parsed = Date.parse(value || "");
+    return Number.isNaN(parsed) ? "Not recorded" : formatMediumDateTime(new Date(parsed));
+  };
+
+  // Sort oldest to newest to find the latest admission/discharge correctly.
+  const sorted = [...safeHistory].sort((a, b) => getEventTime(a) - getEventTime(b));
 
   const admissions = sorted.filter(e => e.type === "Admitted");
   const discharges = sorted.filter(e => e.type === "Discharged");
 
   const lastAdmission = admissions.at(-1);
   const lastDischarge = discharges.at(-1);
-  const currentAdmission = admissions.at(-1);
-  const currentDischarge = discharges.at(-1);
+  const latestEvent = sorted.at(-1);
 
-  // Build table
-  const table = document.createElement("table");
-  table.className = "history-table";
-
-  // Header
-  const thead = document.createElement("thead");
-  thead.innerHTML = `
-    <tr>
-      <th>Last Admitted into Prison</th>
-      <th>Last Checked Out of Prison</th>
-      <th>Current Date Added to Prison</th>
-      <th>Current Date Discharged</th>
-    </tr>
-  `;
-  table.append(thead);
-
-  // Body - one summary row
-  const tbody = document.createElement("tbody");
-  const tr = document.createElement("tr");
-
-  const cell = (entry) => {
-    const td = document.createElement("td");
-    if (entry) {
-      td.innerHTML = `
-        <span class="ht-date">${entry.date ? formatDate(entry.date) : "—"}</span>
-        <span class="ht-meta">by ${escapeHtml(entry.username || "system")}</span>
-      `;
-    } else {
-      td.innerHTML = `<span class="ht-none">—</span>`;
-    }
-    return td;
+  const buildSummaryCard = (label, valueText, metaText = "") => {
+    const card = document.createElement("article");
+    card.className = "history-summary-card";
+    const title = document.createElement("span");
+    title.className = "history-summary-label";
+    title.textContent = label;
+    const value = document.createElement("strong");
+    value.className = "history-summary-value";
+    const meta = document.createElement("span");
+    meta.className = "history-summary-meta";
+    value.textContent = valueText;
+    meta.textContent = metaText;
+    card.setAttribute("aria-label", [label, valueText, metaText].filter(Boolean).join(": "));
+    card.append(title, value, meta);
+    return card;
   };
 
-  tr.append(
-    cell(lastAdmission),
-    cell(lastDischarge),
-    cell(currentAdmission),
-    cell(currentDischarge)
-  );
-  tbody.append(tr);
-  table.append(tbody);
+  const summaryMeta = entry => entry ? `Recorded by ${entry.username || "system"}` : "";
+  const eventCount = safeHistory.length;
 
-  // Full history rows below
-  const allSorted = [...history].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+  const summary = document.createElement("section");
+  summary.className = "history-summary-grid";
+  summary.setAttribute("aria-label", "History summary");
+  summary.append(
+    buildSummaryCard("Latest admission", lastAdmission ? formatEventDate(lastAdmission.date) : "Not recorded", summaryMeta(lastAdmission)),
+    buildSummaryCard("Latest discharge", lastDischarge ? formatEventDate(lastDischarge.date) : "Not recorded", summaryMeta(lastDischarge)),
+    buildSummaryCard("Current status", latestEvent?.type || "No status", latestEvent ? `Since ${formatEventDate(latestEvent.date)}` : ""),
+    buildSummaryCard("Recorded events", String(eventCount), eventCount === 1 ? "1 event total" : `${eventCount} events total`)
+  );
+
+  const detailTitle = document.createElement("h3");
+  detailTitle.className = "history-detail-title";
+  detailTitle.textContent = "Full history";
+
+  const allSorted = [...safeHistory].sort((a, b) => getEventTime(b) - getEventTime(a));
   const detailTable = document.createElement("table");
   detailTable.className = "history-table history-detail-table";
 
@@ -1038,23 +1040,24 @@ function renderMainHistoryTimeline(history) {
   allSorted.forEach(item => {
     const row = document.createElement("tr");
     
-    let detailsParts = [];
+    const detailsParts = [];
     if (item.charge) detailsParts.push(`Charge: ${escapeHtml(item.charge)}`);
     if (item.dischargeStatus) detailsParts.push(`Status: ${escapeHtml(item.dischargeStatus)}`);
-    const detailsHtml = detailsParts.length ? detailsParts.join(" | ") : "—";
+    const detailsHtml = detailsParts.length ? detailsParts.join("; ") : "None";
+    const eventType = item.type === "Discharged" ? "Discharged" : "Admitted";
 
     row.innerHTML = `
-      <td><span class="ht-badge ht-badge-${item.type === "Admitted" ? "in" : "out"}">${escapeHtml(item.type)}</span></td>
-      <td>${item.date ? formatDate(item.date) : "\u2014"}</td>
+      <td><span class="ht-badge ht-badge-${eventType === "Admitted" ? "in" : "out"}">${eventType}</span></td>
+      <td>${formatEventDate(item.date)}</td>
       <td>${detailsHtml}</td>
       <td>${escapeHtml(item.username || "system")}</td>
-      <td>${item.timestamp ? new Date(item.timestamp).toLocaleString() : "—"}</td>
+      <td>${formatEventDateTime(item.timestamp)}</td>
     `;
     detailBody.append(row);
   });
   detailTable.append(detailBody);
 
-  mainHistoryTimeline.append(table, detailTable);
+  mainHistoryTimeline.append(summary, detailTitle, detailTable);
 }
 
 function openIntelModal() {

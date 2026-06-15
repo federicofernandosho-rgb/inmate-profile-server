@@ -99,10 +99,7 @@ document.querySelector("#saveRecord").addEventListener("click", saveNewRecord);
 document.querySelector("#cancelRecord").addEventListener("click", cancelNewRecord);
 document.querySelector("#updateRecord").addEventListener("click", updateCurrentRecord);
 document.querySelector("#deleteRecord").addEventListener("click", deleteRecord);
-document.querySelector("#generatePdf").addEventListener("click", () => {
-  document.body.classList.add("printing");
-  window.print();
-});
+document.querySelector("#generatePdf").addEventListener("click", generatePdfReport);
 document.querySelector("#openIntelModal").addEventListener("click", openIntelModal);
 document.querySelector("#closeModal").addEventListener("click", () => intelDialog.close());
 

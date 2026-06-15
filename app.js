@@ -507,7 +507,7 @@ function renderCurrentRecord() {
   const prevButton = document.querySelector("#previousRecord");
   const newButton = document.querySelector("#newRecord");
   const cancelButton = document.querySelector("#cancelRecord");
-  
+
   if (isNewRecord) {
     updateButton.classList.add("hidden");
     saveButton.classList.remove("hidden");
@@ -774,10 +774,10 @@ async function createNewRecord() {
 
 function cancelNewRecord() {
   if (!isNewRecord) return;
-  
+
   // Remove the unsaved record from the local array
   records.splice(currentIndex, 1);
-  
+
   // Adjust current index
   if (currentIndex > 0) {
     currentIndex--;
@@ -785,7 +785,7 @@ function cancelNewRecord() {
     records.push(emptyRecord());
     currentIndex = 0;
   }
-  
+
   isNewRecord = false;
   renderCurrentRecord();
   showMessage("New inmate cancelled.", "info");
@@ -860,8 +860,8 @@ function renderMainHistoryTimeline(history) {
   const admissions = sorted.filter(e => e.type === "Admitted");
   const discharges = sorted.filter(e => e.type === "Discharged");
 
-  const lastAdmission   = admissions.at(-1);
-  const lastDischarge   = discharges.at(-1);
+  const lastAdmission = admissions.at(-1);
+  const lastDischarge = discharges.at(-1);
   const currentAdmission = admissions.at(-1);
   const currentDischarge = discharges.at(-1);
 
@@ -1415,7 +1415,7 @@ function toggleEmptyHoverIndicator(imgElement, placeholderText) {
   const card = imgElement.closest(".popover-view-card");
   if (!card) return;
   let placeholder = card.querySelector(".popover-view-card-empty");
-  
+
   const rawSrc = imgElement.getAttribute("src");
   if (!rawSrc) {
     imgElement.classList.add("hidden");
@@ -1610,11 +1610,11 @@ async function renderAuditList() {
     }
 
     const actionLabels = {
-      view_records:   "Viewed Records",
-      create_record:  "Created Record",
+      view_records: "Viewed Records",
+      create_record: "Created Record",
       update_records: "Edited Record",
-      delete_record:  "Deleted Record",
-      update_images:  "Updated Images"
+      delete_record: "Deleted Record",
+      update_images: "Updated Images"
     };
 
     list.innerHTML = log.map(e => {

@@ -2752,3 +2752,128 @@ body .tattoo-panel .upload-button {
   margin-top: 4px !important;
   width: auto !important;
 }
+
+/* Screen-level history popup sizing */
+.history-dialog {
+  width: min(1180px, calc(100vw - 36px));
+  height: min(900px, calc(100vh - 36px));
+  max-width: min(1180px, calc(100vw - 36px));
+  max-height: calc(100vh - 36px);
+  border: 0;
+  padding: 0;
+  border-radius: 16px;
+  background: transparent;
+  overflow: visible;
+}
+
+.history-dialog::backdrop {
+  background: rgba(14, 18, 24, 0.58);
+}
+
+.history-dialog .modal-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  max-height: 100%;
+  overflow: hidden;
+  background: var(--card, #ffffff);
+  border-radius: 16px;
+}
+
+.history-dialog .modal-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 24px 24px;
+}
+
+.history-dialog .history-timeline {
+  max-height: none;
+  overflow: visible;
+}
+
+.history-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.history-summary-card {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-height: 92px;
+  padding: 14px;
+  border: 1px solid rgba(209, 213, 219, 0.75);
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.05);
+}
+
+.history-summary-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+.history-summary-value {
+  font-size: 17px;
+  line-height: 1.25;
+  color: var(--ink);
+}
+
+.history-summary-meta {
+  min-height: 16px;
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--muted);
+}
+
+.history-detail-title {
+  margin: 2px 0 -6px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.history-dialog .history-table {
+  width: 100%;
+  table-layout: auto;
+}
+
+.history-dialog .history-table th,
+.history-dialog .history-table td {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+body.dark-mode .history-dialog .modal-shell,
+body.dark-mode .history-summary-card {
+  background: var(--card, #1e293b);
+  border-color: #334155;
+}
+
+@media (max-width: 760px) {
+  .history-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 520px) {
+  .history-summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .history-dialog .modal-body {
+    padding: 16px;
+  }
+
+  .history-table {
+    font-size: 12px;
+  }
+
+  .history-table th,
+  .history-table td {
+    padding: 8px 10px;
+  }
+}

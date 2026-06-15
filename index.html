@@ -194,12 +194,6 @@
               <textarea id="comment" name="comment" rows="5"></textarea>
             </label>
 
-            <div class="history-section" id="mainHistorySection">
-              <h3>Status & Date History</h3>
-              <div class="history-timeline" id="mainHistoryTimeline">
-                <div class="history-empty">No status changes recorded.</div>
-              </div>
-            </div>
           </div>
         </form>
       </section>
@@ -217,6 +211,7 @@
           <button type="button" id="nextRecord">Next</button>
         </div>
           <button type="button" id="generatePdf">Generate PDF</button>
+          <button type="button" id="viewHistory">History</button>
         </div>
       </nav>
 
@@ -469,6 +464,23 @@
             <button type="button" id="auditApplyFilter">Filter</button>
           </div>
           <div class="audit-list" id="auditList"><p>Loading...</p></div>
+        </section>
+      </div>
+    </dialog>
+
+    <dialog id="historyDialog" class="history-dialog">
+      <div class="modal-shell">
+        <header class="modal-header">
+          <div>
+            <h2>Incarceration History</h2>
+            <p>Status &amp; date history for this inmate</p>
+          </div>
+          <button type="button" class="icon-button" id="closeHistoryModal" aria-label="Close history">X</button>
+        </header>
+        <section class="modal-body">
+          <div class="history-timeline" id="mainHistoryTimeline">
+            <div class="history-empty">No status changes recorded.</div>
+          </div>
         </section>
       </div>
     </dialog>

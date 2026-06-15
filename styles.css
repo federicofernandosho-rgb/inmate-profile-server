@@ -2048,6 +2048,55 @@ body.dark-mode .audit-detail {
     color: #f87171;
   }
 
+  /* History Dialog */
+  .history-dialog {
+    width: min(900px, calc(100vw - 28px));
+    max-height: 85vh;
+    border: 0;
+    padding: 0;
+    border-radius: 16px;
+    background: transparent;
+    overflow: visible;
+  }
+
+  .history-dialog::backdrop {
+    background: rgba(14, 18, 24, 0.58);
+  }
+
+  .history-dialog .modal-shell {
+    background: var(--card, #ffffff);
+    border-radius: 16px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    max-height: 85vh;
+  }
+
+  .history-dialog .modal-body {
+    overflow-y: auto;
+    padding: 20px 24px 24px;
+  }
+
+  .history-dialog .history-timeline {
+    max-height: none;
+    overflow: visible;
+  }
+
+  .history-dialog .history-table {
+    width: 100%;
+    table-layout: fixed;
+  }
+
+  .history-dialog .history-table th,
+  .history-dialog .history-table td {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+  }
+
+  body.dark-mode .history-dialog .modal-shell {
+    background: var(--card, #1e293b);
+  }
+
   .tattoo-list {
     background: #f8fafc;
     border-radius: 18px;

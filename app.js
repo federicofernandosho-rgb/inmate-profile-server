@@ -84,6 +84,7 @@ const admissionDialog = document.querySelector("#admissionDialog");
 const dischargeDialog = document.querySelector("#dischargeDialog");
 const admissionForm = document.querySelector("#admissionForm");
 const dischargeForm = document.querySelector("#dischargeForm");
+const historyDialog = document.querySelector("#historyDialog");
 let pendingStatusEvent = null;
 
 loginForm.addEventListener("submit", handleLogin);
@@ -100,6 +101,12 @@ document.querySelector("#cancelRecord").addEventListener("click", cancelNewRecor
 document.querySelector("#updateRecord").addEventListener("click", updateCurrentRecord);
 document.querySelector("#deleteRecord").addEventListener("click", deleteRecord);
 document.querySelector("#generatePdf").addEventListener("click", generatePdfReport);
+document.querySelector("#viewHistory").addEventListener("click", () => {
+  const record = records[currentIndex];
+  renderMainHistoryTimeline(record ? (record.statusHistory || []) : []);
+  historyDialog.showModal();
+});
+document.querySelector("#closeHistoryModal").addEventListener("click", () => historyDialog.close());
 document.querySelector("#openIntelModal").addEventListener("click", openIntelModal);
 document.querySelector("#closeModal").addEventListener("click", () => intelDialog.close());
 
@@ -589,6 +596,7 @@ function renderCurrentRecord() {
   const generatePdfButton = document.querySelector("#generatePdf");
   const deleteButton = document.querySelector("#deleteRecord");
   const filterBar = document.querySelector("#filterBar");
+  const historyButton = document.querySelector("#viewHistory");
 
   if (isNewRecord) {
     updateButton.classList.add("hidden");
@@ -600,6 +608,7 @@ function renderCurrentRecord() {
     intelButton.classList.add("hidden");
     generatePdfButton.classList.add("hidden");
     deleteButton.classList.add("hidden");
+    if (historyButton) historyButton.classList.add("hidden");
     if (filterBar) filterBar.classList.add("hidden");
   } else {
     updateButton.classList.remove("hidden");
@@ -611,6 +620,7 @@ function renderCurrentRecord() {
     intelButton.classList.remove("hidden");
     generatePdfButton.classList.remove("hidden");
     deleteButton.classList.toggle("hidden", !canManageUsers());
+    if (historyButton) historyButton.classList.remove("hidden");
     if (filterBar) filterBar.classList.remove("hidden");
   }
 }

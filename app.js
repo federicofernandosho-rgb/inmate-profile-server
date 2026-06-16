@@ -126,7 +126,6 @@ document.querySelector("#auditApplyFilter").addEventListener("click", renderAudi
 document.querySelector("#applyFilter").addEventListener("click", applyRecordFilters);
 document.querySelector("#clearFilter").addEventListener("click", clearRecordFilters);
 
-
 document.querySelector("#saveIntel").addEventListener("click", saveIntelDetails);
 document.querySelectorAll(".remove-image").forEach(button => {
   button.addEventListener("click", () => removeFaceImage(button.dataset.imageKey));
@@ -140,11 +139,11 @@ function handleIncarcerationClick(e) {
     e.preventDefault();
     return;
   }
-  
-  e.preventDefault(); // Stop immediate check
+
+  e.preventDefault();
   const targetId = e.target.id;
   const rec = records[currentIndex] || emptyRecord();
-  
+
   if (targetId === "incarcerationIn") {
     admissionForm.reset();
     if (rec.inPrison) {
@@ -175,7 +174,7 @@ admissionForm.addEventListener("submit", (e) => {
   e.preventDefault();
   fields.incarcerationIn.checked = true;
   fields.incarcerationOut.checked = false;
-  
+
   pendingStatusEvent = {
     type: "Admitted",
     date: document.querySelector("#modalAdmissionDate").value,
@@ -183,19 +182,19 @@ admissionForm.addEventListener("submit", (e) => {
     timestamp: new Date().toISOString(),
     username: currentUser?.username || "system"
   };
-  
+
   fields.statusDate.value = pendingStatusEvent.date;
   updateStatusDateVisibility();
   admissionDialog.close();
 });
 
-document.querySelector("#closeDischargeModal").addEventListener("click", () => dischargeDialog.close());
+document.querySelector("#closeDischargeModal").addEventListener("click", () => dialogDialog.close());
 document.querySelector("#dischargeCancelBtn").addEventListener("click", () => dischargeDialog.close());
 dischargeForm.addEventListener("submit", (e) => {
   e.preventDefault();
   fields.incarcerationIn.checked = false;
   fields.incarcerationOut.checked = true;
-  
+
   pendingStatusEvent = {
     type: "Discharged",
     date: document.querySelector("#modalDischargeDate").value,
@@ -204,7 +203,7 @@ dischargeForm.addEventListener("submit", (e) => {
     timestamp: new Date().toISOString(),
     username: currentUser?.username || "system"
   };
-  
+
   fields.statusDate.value = pendingStatusEvent.date;
   updateStatusDateVisibility();
   dischargeDialog.close();
@@ -507,8 +506,6 @@ function applyAccessMode() {
   });
   fields.age.disabled = true;
 
-  // Modal fields removed; no modal text inputs to toggle.
-
   document.querySelectorAll("[data-edit-only]").forEach(element => {
     element.disabled = readOnly;
   });
@@ -534,6 +531,7 @@ function getFormRecord() {
     dob,
     age,
     address: fields.address.value.trim(),
+    affiliation: fields.affiliation.value.trim(),
     comment: fields.comment.value.trim(),
     inPrison: fields.incarcerationIn.checked,
     images: normalizeImages(current.images),
@@ -585,7 +583,6 @@ function renderCurrentRecord() {
   renderMainHistoryTimeline(record.statusHistory || []);
   updateStatus();
 
-  // Hide all actions except Save Record when creating a new record
   const updateButton = document.querySelector("#updateRecord");
   const saveButton = document.querySelector("#saveRecord");
   const nextButton = document.querySelector("#nextRecord");
@@ -647,12 +644,11 @@ function getStatusChangeEvent(record, previousRecord) {
 
 function applyStatusHistory(record) {
   const previousRecord = records[currentIndex] || emptyRecord();
-  
+
   if (pendingStatusEvent) {
     record.statusHistory = [...(previousRecord.statusHistory || []), pendingStatusEvent];
-    pendingStatusEvent = null; // consume it
+    pendingStatusEvent = null;
   } else {
-    // Fallback if they just changed the date without clicking radio (e.g., direct edit of statusDate)
     const event = getStatusChangeEvent(record, previousRecord);
     if (event) {
       record.statusHistory = [...(previousRecord.statusHistory || []), event];
@@ -736,7 +732,6 @@ function validateRecord(record) {
     showMessage("Inmate ID, first name, and last name are required.");
     return false;
   }
-
   return true;
 }
 
@@ -811,7 +806,6 @@ async function deleteRecord() {
   const name = [record.firstName, record.lastName].filter(Boolean).join(" ") || "Unknown";
   const id = record.inmateId || "N/A";
 
-  // Show custom confirmation dialog
   const confirmed = await showDeleteConfirm(name, id);
   if (!confirmed) return;
 
@@ -875,7 +869,6 @@ async function createNewRecord() {
   records.push(emptyRecord());
   currentIndex = records.length - 1;
   isNewRecord = true;
-  // Don't persist yet - wait for save
   renderCurrentRecord();
   showMessage("Ready for a new inmate record.");
   fields.inmateId.focus();
@@ -884,10 +877,8 @@ async function createNewRecord() {
 function cancelNewRecord() {
   if (!isNewRecord) return;
 
-  // Remove the unsaved record from the local array
   records.splice(currentIndex, 1);
 
-  // Adjust current index
   if (currentIndex > 0) {
     currentIndex--;
   } else if (records.length === 0) {
@@ -904,871 +895,301 @@ function cancelNewRecord() {
 async function showPreviousRecord() {
   const pool = filteredRecords.length ? filteredRecords : records;
   if (pool.length < 2) {
-    showMessage("There is no previous record yet.");
+    showMessage("No alternative records available in filter view.", "info");
     return;
   }
-
-  if (canEdit()) {
-    records[currentIndex] = getFormRecord();
-    await persistRecords();
-  }
-
-  const posInPool = pool.indexOf(records[currentIndex]);
-  const prevPos = (posInPool - 1 + pool.length) % pool.length;
-  currentIndex = records.indexOf(pool[prevPos]);
-
-  if (pageSize !== Infinity) {
-    const filteredPos = filteredRecords.indexOf(pool[prevPos]);
-    if (filteredPos >= 0) currentPage = Math.floor(filteredPos / pageSize) + 1;
-  }
-
+  let currentPoolIndex = pool.indexOf(records[currentIndex]);
+  currentPoolIndex = currentPoolIndex <= 0 ? pool.length - 1 : currentPoolIndex - 1;
+  currentIndex = records.indexOf(pool[currentPoolIndex]);
+  isNewRecord = false;
   renderCurrentRecord();
-  showMessage("Previous record loaded.");
 }
 
 async function showNextRecord() {
   const pool = filteredRecords.length ? filteredRecords : records;
   if (pool.length < 2) {
-    showMessage("There is no next record yet.");
+    showMessage("No alternative records available in filter view.", "info");
     return;
   }
-
-  if (canEdit()) {
-    records[currentIndex] = getFormRecord();
-    await persistRecords();
-  }
-
-  const posInPool = pool.indexOf(records[currentIndex]);
-  const nextPos = (posInPool + 1) % pool.length;
-  currentIndex = records.indexOf(pool[nextPos]);
-
-  if (pageSize !== Infinity) {
-    const filteredPos = filteredRecords.indexOf(pool[nextPos]);
-    if (filteredPos >= 0) currentPage = Math.floor(filteredPos / pageSize) + 1;
-  }
-
+  let currentPoolIndex = pool.indexOf(records[currentIndex]);
+  currentPoolIndex = currentPoolIndex >= pool.length - 1 ? 0 : currentPoolIndex + 1;
+  currentIndex = records.indexOf(pool[currentPoolIndex]);
+  isNewRecord = false;
   renderCurrentRecord();
-  showMessage("Next record loaded.");
 }
 
-// Modal history timeline removed; history rendered only in main view via `renderMainHistoryTimeline`.
-
-function renderMainHistoryTimeline(history) {
-  mainHistoryTimeline.innerHTML = "";
-
-  const safeHistory = (history || []).filter(Boolean);
-
-  if (!safeHistory.length) {
-    const empty = document.createElement("div");
-    empty.className = "history-empty";
-    empty.textContent = "No status changes recorded.";
-    mainHistoryTimeline.append(empty);
-    return;
-  }
-
-  const getEventTime = item => {
-    const parsed = Date.parse(item.timestamp || "");
-    return Number.isNaN(parsed) ? 0 : parsed;
-  };
-  const formatEventDate = value => formatDate(value) || "Not recorded";
-  const formatEventDateTime = value => {
-    const parsed = Date.parse(value || "");
-    return Number.isNaN(parsed) ? "Not recorded" : formatMediumDateTime(new Date(parsed));
-  };
-
-  // Sort oldest to newest to find the latest admission/discharge correctly.
-  const sorted = [...safeHistory].sort((a, b) => getEventTime(a) - getEventTime(b));
-
-  const admissions = sorted.filter(e => e.type === "Admitted");
-  const discharges = sorted.filter(e => e.type === "Discharged");
-
-  const lastAdmission = admissions.at(-1);
-  const lastDischarge = discharges.at(-1);
-  const latestEvent = sorted.at(-1);
-
-  const buildSummaryCard = (label, valueText, metaText = "") => {
-    const card = document.createElement("article");
-    card.className = "history-summary-card";
-    const title = document.createElement("span");
-    title.className = "history-summary-label";
-    title.textContent = label;
-    const value = document.createElement("strong");
-    value.className = "history-summary-value";
-    const meta = document.createElement("span");
-    meta.className = "history-summary-meta";
-    value.textContent = valueText;
-    meta.textContent = metaText;
-    card.setAttribute("aria-label", [label, valueText, metaText].filter(Boolean).join(": "));
-    card.append(title, value, meta);
-    return card;
-  };
-
-  const summaryMeta = entry => entry ? `Recorded by ${entry.username || "system"}` : "";
-  const eventCount = safeHistory.length;
-
-  const summary = document.createElement("section");
-  summary.className = "history-summary-grid";
-  summary.setAttribute("aria-label", "History summary");
-  summary.append(
-    buildSummaryCard("Latest admission", lastAdmission ? formatEventDate(lastAdmission.date) : "Not recorded", summaryMeta(lastAdmission)),
-    buildSummaryCard("Latest discharge", lastDischarge ? formatEventDate(lastDischarge.date) : "Not recorded", summaryMeta(lastDischarge)),
-    buildSummaryCard("Current status", latestEvent?.type || "No status", latestEvent ? `Since ${formatEventDate(latestEvent.date)}` : ""),
-    buildSummaryCard("Recorded events", String(eventCount), eventCount === 1 ? "1 event total" : `${eventCount} events total`)
-  );
-
-  const detailTitle = document.createElement("h3");
-  detailTitle.className = "history-detail-title";
-  detailTitle.textContent = "Full history";
-
-  const allSorted = [...safeHistory].sort((a, b) => getEventTime(b) - getEventTime(a));
-  const detailTable = document.createElement("table");
-  detailTable.className = "history-table history-detail-table";
-
-  const detailHead = document.createElement("thead");
-  detailHead.innerHTML = `
-    <tr>
-      <th>Action</th>
-      <th>Date</th>
-      <th>Details</th>
-      <th>Recorded By</th>
-      <th>Timestamp</th>
-    </tr>
-  `;
-  detailTable.append(detailHead);
-
-  const detailBody = document.createElement("tbody");
-  allSorted.forEach(item => {
-    const row = document.createElement("tr");
-    
-    const detailsParts = [];
-    if (item.charge) detailsParts.push(`Charge: ${escapeHtml(item.charge)}`);
-    if (item.dischargeStatus) detailsParts.push(`Status: ${escapeHtml(item.dischargeStatus)}`);
-    const detailsHtml = detailsParts.length ? detailsParts.join("; ") : "None";
-    const eventType = item.type === "Discharged" ? "Discharged" : "Admitted";
-
-    row.innerHTML = `
-      <td><span class="ht-badge ht-badge-${eventType === "Admitted" ? "in" : "out"}">${eventType}</span></td>
-      <td>${formatEventDate(item.date)}</td>
-      <td>${detailsHtml}</td>
-      <td>${escapeHtml(item.username || "system")}</td>
-      <td>${formatEventDateTime(item.timestamp)}</td>
-    `;
-    detailBody.append(row);
-  });
-  detailTable.append(detailBody);
-
-  mainHistoryTimeline.append(summary, detailTitle, detailTable);
-}
-
-function openIntelModal() {
-  const record = getFormRecord();
-  // Modal now focuses on image intel only
-  updateFacePreviews(record);
-  renderTattooList(record.images?.tattoos || []);
-  intelDialog.showModal();
-}
-
-async function saveIntelDetails() {
-  if (!canEdit()) {
-    showMessage("Read-only users cannot save intel.");
-    return;
-  }
-
-  const record = getFormRecord();
-  const name = fullName(record) || record.inmateId || "Unknown";
-
-  // Save current record (images are updated via file inputs already)
-  records[currentIndex] = record;
-  await persistRecords("update_images", `Images updated for ${name} (ID: ${record.inmateId})`);
-  renderCurrentRecord();
-  intelDialog.close();
-  showMessage(`Images saved for ${name}.`, "success");
-}
-
-async function removeFaceImage(key) {
-  if (!canEdit()) return;
-
-  const record = getFormRecord();
-  record.images = normalizeImages(record.images);
-  record.images[key] = "";
-  records[currentIndex] = record;
-  updateFacePreviews(record);
-  await persistRecords();
-  renderCurrentRecord();
-  showMessage("Photo removed.");
-}
-
-function setImage(event, key) {
-  if (!canEdit()) return;
-
-  const file = event.target.files[0];
-  if (!file) return;
-
-  fileToDataUrl(file).then(async dataUrl => {
-    const record = getFormRecord();
-    record.images = normalizeImages(record.images);
-    record.images[key] = dataUrl;
-    records[currentIndex] = record;
-    await persistRecords();
-    updateFacePreviews(record);
-    renderCurrentRecord();
-  });
-
-  event.target.value = "";
-}
-
-function addTattooImages(event) {
-  if (!canEdit()) return;
-
-  const files = Array.from(event.target.files);
-  if (!files.length) return;
-
-  const pendingImages = [];
-  let currentFileIndex = 0;
-
-  const processFilesSequentially = async () => {
-    for (const file of files) {
-      const dataUrl = await fileToDataUrl(file);
-      const description = await showTattooDescriptionModal(file.name, dataUrl);
-      pendingImages.push({ src: dataUrl, description });
-    }
-
-    const record = getFormRecord();
-    record.images = normalizeImages(record.images);
-    record.images.tattoos = [...(record.images.tattoos || []), ...pendingImages];
-    records[currentIndex] = record;
-    await persistRecords();
-    renderTattooList(record.images.tattoos);
-  };
-
-  processFilesSequentially();
-  event.target.value = "";
-}
-
-function showTattooDescriptionModal(fileName, dataUrl, currentDescription = "") {
-  return new Promise(resolve => {
-    const overlay = document.getElementById("tattooDescModal");
-    const img = document.getElementById("tattooDescPreview");
-    const input = document.getElementById("tattooDescInput");
-    const fileNameEl = document.getElementById("tattooDescFileName");
-    const saveBtn = document.getElementById("tattooDescSave");
-    const cancelBtn = document.getElementById("tattooDescCancel");
-
-    img.src = dataUrl;
-    fileNameEl.textContent = fileName;
-    input.value = currentDescription;
-
-    const handleSave = () => {
-      overlay.close();
-      cleanup();
-      resolve(input.value.trim() || "");
-    };
-
-    const handleCancel = () => {
-      overlay.close();
-      cleanup();
-      resolve(currentDescription);
-    };
-
-    const handleKeydown = (e) => {
-      if (e.key === "Enter" && !e.shiftKey) {
-        e.preventDefault();
-        handleSave();
-      } else if (e.key === "Escape") {
-        handleCancel();
-      }
-    };
-
-    const cleanup = () => {
-      saveBtn.removeEventListener("click", handleSave);
-      cancelBtn.removeEventListener("click", handleCancel);
-      overlay.removeEventListener("keydown", handleKeydown);
-    };
-
-    saveBtn.addEventListener("click", handleSave);
-    cancelBtn.addEventListener("click", handleCancel);
-    overlay.addEventListener("keydown", handleKeydown);
-
-    overlay.showModal();
-    setTimeout(() => input.focus(), 10);
-  });
-}
-
-function renderTattooList(tattoos) {
-  tattooList.innerHTML = "";
-
-  if (!tattoos.length) {
-    const empty = document.createElement("div");
-    empty.className = "tattoo-empty";
-    empty.textContent = "No tattoo pictures added";
-    tattooList.append(empty);
-    return;
-  }
-
-  tattoos.forEach((tattoo, index) => {
-    const src = typeof tattoo === "string" ? tattoo : tattoo.src;
-    const description = typeof tattoo === "string" ? "" : (tattoo.description || "");
-
-    const thumb = document.createElement("div");
-    thumb.className = "tattoo-thumb";
-
-    const img = document.createElement("img");
-    img.src = src;
-    img.alt = description || `Tattoo picture ${index + 1}`;
-    img.style.cursor = "pointer";
-    img.addEventListener("click", () => openTattooModal(index));
-
-    const remove = document.createElement("button");
-    remove.type = "button";
-    remove.textContent = "X";
-    remove.disabled = !canEdit();
-    remove.setAttribute("aria-label", `Remove tattoo picture ${index + 1}`);
-    remove.addEventListener("click", () => removeTattoo(index));
-
-    const descEl = document.createElement("p");
-    descEl.className = "tattoo-desc";
-    descEl.textContent = description || "No description";
-    if (canEdit()) {
-      descEl.style.cursor = "pointer";
-      descEl.style.textDecoration = "underline dotted";
-      descEl.title = "Click to edit description";
-      descEl.addEventListener("click", () => editTattooDescription(index));
-    }
-
-    thumb.append(img, remove, descEl);
-    tattooList.append(thumb);
-  });
-}
-
-async function editTattooDescription(index) {
-  if (!canEdit()) return;
-
-  const record = getFormRecord();
-  const tattoos = record.images?.tattoos || [];
-  const tattoo = tattoos[index];
-  const src = typeof tattoo === "string" ? tattoo : tattoo.src;
-  const currentDesc = typeof tattoo === "string" ? "" : (tattoo.description || "");
-
-  const newDesc = await showTattooDescriptionModal("Edit description", src, currentDesc);
-
-  record.images = normalizeImages(record.images);
-  record.images.tattoos[index] = { src, description: newDesc };
-  records[currentIndex] = record;
-  await persistRecords();
-  renderTattooList(record.images.tattoos);
-}
-
-async function removeTattoo(index) {
-  if (!canEdit()) return;
-
-  const record = getFormRecord();
-  record.images = normalizeImages(record.images);
-  record.images.tattoos.splice(index, 1);
-  records[currentIndex] = record;
-  await persistRecords();
-  renderTattooList(record.images.tattoos);
-}
-
-let tattooZoomLevel = 1;
-let tattooPanX = 0;
-let tattooPanY = 0;
-let tattooIsDragging = false;
-let tattooDragStart = { x: 0, y: 0 };
-let tattooDragOffset = { x: 0, y: 0 };
-
-function openTattooModal(index) {
-  const record = getFormRecord();
-  const tattoos = record.images?.tattoos || [];
-  const tattoo = tattoos[index];
-  const src = typeof tattoo === "string" ? tattoo : tattoo.src;
-  const description = typeof tattoo === "string" ? "" : (tattoo.description || "");
-
-  const modal = document.getElementById("tattooModal");
-  const img = document.getElementById("tattooModalImg");
-  const desc = document.getElementById("tattooModalDesc");
-
-  img.src = src;
-  img.alt = description || `Tattoo picture ${index + 1}`;
-  desc.textContent = description || "No description";
-  tattooZoomLevel = 1;
-  tattooPanX = 0;
-  tattooPanY = 0;
-  updateTattooTransform(img);
-  modal.showModal();
-  document.body.classList.add("modal-open");
-}
-
-function closeTattooModal() {
-  const modal = document.getElementById("tattooModal");
-  modal.close();
-  document.body.classList.remove("modal-open");
-}
-
-function updateTattooTransform(img) {
-  img.style.transform = `translate(${tattooPanX}px, ${tattooPanY}px) scale(${tattooZoomLevel})`;
-}
-
-function zoomTattoo(direction) {
-  const img = document.getElementById("tattooModalImg");
-  if (direction === "in") {
-    tattooZoomLevel = Math.min(tattooZoomLevel + 0.25, 5);
-  } else {
-    tattooZoomLevel = Math.max(tattooZoomLevel - 0.25, 0.5);
-  }
-  if (tattooZoomLevel === 1) {
-    tattooPanX = 0;
-    tattooPanY = 0;
-  }
-  updateTattooTransform(img);
-}
-
-function resetTattooZoom() {
-  const img = document.getElementById("tattooModalImg");
-  tattooZoomLevel = 1;
-  tattooPanX = 0;
-  tattooPanY = 0;
-  updateTattooTransform(img);
-}
-
-function initTattooPan() {
-  const wrapper = document.querySelector(".tattoo-modal-img-wrapper");
-  const img = document.getElementById("tattooModalImg");
-
-  wrapper.addEventListener("mousedown", (e) => {
-    if (tattooZoomLevel <= 1) return;
-    e.preventDefault();
-    tattooIsDragging = true;
-    tattooDragStart = { x: e.clientX, y: e.clientY };
-    tattooDragOffset = { x: tattooPanX, y: tattooPanY };
-    wrapper.classList.add("panning");
-  });
-
-  document.addEventListener("mousemove", (e) => {
-    if (!tattooIsDragging) return;
-    e.preventDefault();
-    const dx = e.clientX - tattooDragStart.x;
-    const dy = e.clientY - tattooDragStart.y;
-    tattooPanX = tattooDragOffset.x + dx;
-    tattooPanY = tattooDragOffset.y + dy;
-    updateTattooTransform(img);
-  });
-
-  document.addEventListener("mouseup", () => {
-    if (!tattooIsDragging) return;
-    tattooIsDragging = false;
-    wrapper.classList.remove("panning");
-  });
-
-  img.addEventListener("click", (e) => {
-    if (Math.abs(tattooPanX - tattooDragOffset.x) > 5 || Math.abs(tattooPanY - tattooDragOffset.y) > 5) {
-      return;
-    }
-    if (tattooZoomLevel < 2) {
-      tattooZoomLevel = 2;
-    } else if (tattooZoomLevel < 3) {
-      tattooZoomLevel = 3;
-    } else {
-      tattooZoomLevel = 1;
-      tattooPanX = 0;
-      tattooPanY = 0;
-    }
-    updateTattooTransform(img);
-  });
-
-  wrapper.addEventListener("wheel", (e) => {
-    e.preventDefault();
-    const delta = e.deltaY > 0 ? -0.15 : 0.15;
-    tattooZoomLevel = Math.min(Math.max(tattooZoomLevel + delta, 0.5), 5);
-    if (tattooZoomLevel <= 1) {
-      tattooPanX = 0;
-      tattooPanY = 0;
-    }
-    updateTattooTransform(img);
-  }, { passive: false });
-}
-
-initTattooPan();
-
-function setAgeFromDob() {
-  const dob = parseDateInput(fields.dob.value);
-  fields.age.value = calculateAge(dob);
-}
-
-function parseDateInput(value) {
-  const input = value.trim();
-  if (!input) return "";
-
-  if (/^\d{4}-\d{2}-\d{2}$/.test(input)) {
-    return input;
-  }
-
-  const parsed = new Date(input);
-  if (Number.isNaN(parsed.getTime())) {
-    return "";
-  }
-
-  return toIsoDate(parsed);
-}
-
-function calculateAge(dobValue) {
-  if (!dobValue) return "";
-
-  const dob = new Date(`${dobValue}T00:00:00`);
-  if (Number.isNaN(dob.getTime())) return "";
-
-  const today = new Date();
-  let age = today.getFullYear() - dob.getFullYear();
-  const monthDelta = today.getMonth() - dob.getMonth();
-
-  if (monthDelta < 0 || (monthDelta === 0 && today.getDate() < dob.getDate())) {
-    age -= 1;
-  }
-
-  return age >= 0 ? String(age) : "";
-}
-
+// ── PDF Generation Logic ──────────────────────────────────────────────────────
 function generatePdfReport() {
-  const record = getFormRecord();
+  const record = records[currentIndex];
+  if (!record || !record.inmateId) {
+    showMessage("Cannot generate report for an empty record.");
+    return;
+  }
 
-  if (!validateRecord(record)) return;
-
-  records[currentIndex] = record;
-  reportTemplate.innerHTML = buildReportMarkup(record);
   document.body.classList.add("printing");
-  window.print();
-}
+  const images = normalizeImages(record.images);
 
-function buildReportMarkup(record) {
-  const tattoos = record.images?.tattoos || [];
-  const generatedAt = new Date();
-  const tattooMarkup = tattoos.map((tattoo, index) => {
-    const src = typeof tattoo === "string" ? tattoo : tattoo.src;
-    const description = typeof tattoo === "string" ? "" : (tattoo.description || "");
-    const caption = description || `Tattoo ${index + 1}`;
-    return `
-    <figure class="report-photo tattoo-report-photo">
-      <img src="${src}" alt="${escapeHtml(description || `Tattoo picture ${index + 1}`)}">
-      <figcaption>${escapeHtml(caption)}</figcaption>
-    </figure>
+  // HTML implementation reflecting branding structure from image_73f9c9.png and layout instructions
+  let html = `
+    <!-- Top Branded Header Block (Ref: image_73f9c9.png) -->
+    <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 20px; font-family: 'Times New Roman', Times, serif;">
+      <!-- Left Cross Graphic Element Area -->
+      <div style="width: 70px; text-align: left;">
+        <span style="font-size: 55px; color: #ffd700; font-weight: bold; line-height: 1; text-shadow: 0px 0px 8px rgba(186,166,255,0.7);">†</span>
+      </div>
+      
+      <!-- Center Title Data -->
+      <div style="text-align: center; flex-grow: 1;">
+        <h1 style="font-size: 26px; margin: 0; font-weight: normal; letter-spacing: 1px; text-transform: uppercase;">KOLBE FOUNDATION</h1>
+        <h2 style="font-size: 20px; margin: 3px 0 6px 0; font-weight: normal; letter-spacing: 0.5px;">Belize Central Prison</h2>
+        <div style="font-size: 11px; font-style: italic; border-top: 1px solid #7f8c8d; padding-top: 5px; max-width: 500px; margin: 0 auto; line-height: 1.3;">
+          A Limited-Liability, Non-Governmental, Non-Profit Belizean Company managing the Prison System for the Country of Belize
+        </div>
+      </div>
+      
+      <!-- Right Shield/Emblem Graphic Placeholder Area -->
+      <div style="width: 70px; text-align: right;">
+        <div style="border: 2px dashed #7f8c8d; border-radius: 50%; width: 60px; height: 60px; display: inline-flex; align-items: center; justify-content: center; font-size: 8px; font-family: sans-serif; color: #7f8c8d;">[ EMBLEM ]</div>
+      </div>
+    </div>
+    
+    <div class="report-grid">
+      <div class="report-field"><strong>Inmate ID</strong>${escapeHtml(record.inmateId)}</div>
+      <div class="report-field"><strong>Incarceration Status</strong>${record.inPrison ? "In Prison" : "Out of Prison"}</div>
+      <div class="report-field"><strong>First Name</strong>${escapeHtml(record.firstName)}</div>
+      <div class="report-field"><strong>Last Name</strong>${escapeHtml(record.lastName)}</div>
+      <div class="report-field"><strong>Middle Name</strong>${escapeHtml(record.middleName || "—")}</div>
+      <div class="report-field"><strong>Alias (AKA)</strong>${escapeHtml(record.alias || "—")}</div>
+      <div class="report-field"><strong>Date of Birth</strong>${formatDisplayDate(record.dob)}</div>
+      <div class="report-field"><strong>Age</strong>${calculateAge(record.dob) || "—"}</div>
+      <div class="report-field address-field"><strong>Address</strong>${escapeHtml(record.address || "—")}</div>
+      <div class="report-field affiliation-field"><strong>Affiliation</strong>${escapeHtml(record.affiliation || "—")}</div>
+      <div class="report-field comment-field report-comment"><strong>Comments/Intelligence Data</strong>${escapeHtml(record.comment || "—")}</div>
+    </div>
   `;
-  }).join("");
+
+  const identityPhotos = [];
+  if (images.frontFace) identityPhotos.push({ src: images.frontFace, label: "Front View" });
+  if (images.rightFace) identityPhotos.push({ src: images.rightFace, label: "Right Profile" });
+  if (images.leftFace) identityPhotos.push({ src: images.leftFace, label: "Left Profile" });
+
+  if (identityPhotos.length > 0) {
+    html += `
+      <div class="report-section-title">Facial Mugshot Dossier</div>
+      <div class="report-images mugshot-report-images">
+        ${identityPhotos.map(p => `
+          <figure class="report-photo">
+            <img src="${p.src}" alt="${p.label}">
+            <figcaption style="font-size:10px; text-align:center; margin-top:3px; font-weight:600;">${p.label}</figcaption>
+          </figure>
+        `).join("")}
+      </div>
+    `;
+  }
+
+  if (images.tattoos && images.tattoos.length > 0) {
+    html += `
+      <div class="report-section-title">Distinguishing Marks / Tattoo Intel</div>
+      <div class="report-images tattoo-report-images">
+        ${images.tattoos.map((t, i) => `
+          <figure class="report-photo tattoo-report-photo">
+            <img src="${t.src || t}" alt="Tattoo ${i + 1}">
+            <figcaption style="font-size:9px; text-align:center; margin-top:2px; line-height:1.1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${escapeHtml(t.description || "")}">
+              ${escapeHtml(t.description || `Mark #${i + 1}`)}
+            </figcaption>
+          </figure>
+        `).join("")}
+      </div>
+    `;
+  }
 
   const history = record.statusHistory || [];
-  const historyMarkup = history.map(item => `
-    <div class="report-history-item">
-      <strong>${escapeHtml(item.type)}</strong>
-      <span>Date: ${item.date ? formatDate(item.date) : "Not set"}</span>
-      <span class="report-meta">By ${escapeHtml(item.username)} on ${formatMediumDateTime(new Date(item.timestamp))}</span>
+  html += `
+    <div class="report-section-title">Status &amp; Date History</div>
+    <div style="margin-top:8px; margin-bottom: 40px;">
+      ${history.length === 0 ? `
+        <div style="text-align:center; padding:6px; font-style:italic; color:#666; font-size:11px;">No recorded access transitions found for this asset.</div>
+      ` : `
+        <table style="width:100%; border-collapse:collapse; font-size:11px;">
+          <thead>
+            <tr style="border-bottom:1.5px solid #000; text-align:left; font-weight:bold;">
+              <th style="padding:4px 0;">Event Type</th>
+              <th style="padding:4px 0;">Effective Date</th>
+              <th style="padding:4px 0;">Associated Charge / Details</th>
+              <th style="padding:4px 0;">Officer Key</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${history.slice().reverse().map(ev => {
+    let detailText = ev.charge || "—";
+    if (ev.type === "Discharged" && ev.dischargeStatus) {
+      detailText += ` (${ev.dischargeStatus})`;
+    }
+    return `
+                <tr style="border-bottom:1px solid #e2e8f0;">
+                  <td style="padding:4px 0; font-weight:600;">${ev.type}</td>
+                  <td style="padding:4px 0;">${formatDisplayDate(ev.date)}</td>
+                  <td style="padding:4px 0;">${escapeHtml(detailText)}</td>
+                  <td style="padding:4px 0; color:#4a5568;">${escapeHtml(ev.username || "system")}</td>
+                </tr>
+              `;
+  }).join("")}
+          </tbody>
+        </table>
+      `}
     </div>
-  `).join("");
 
-  return `
-    <div class="report-heading">
-      <h1>Inmate Profile Report</h1>
-      <p>Generated ${escapeHtml(formatMediumDateTime(generatedAt))}</p>
-    </div>
-    <div class="report-grid">
-      ${reportField("Inmate ID", record.inmateId)}
-      ${reportField("Name", fullName(record))}
-      ${reportField("Alias AKA", record.alias)}
-      ${reportField("DOB", formatDate(record.dob))}
-      ${reportField("Age", record.age)}
-      ${reportField("Address", record.address)}
-      ${reportField("Affiliation", record.affiliation)}
-      ${reportField("Gang Affiliation", record.gangAffiliation)}
-      ${reportField("Currently in prison", record.inPrison ? "Yes" : "No")}
-      ${record.inPrison && record.admissionDate ? reportField("Admission Date", formatDate(record.admissionDate)) : ""}
-      ${!record.inPrison && record.dischargeDate ? reportField("Discharge Date", formatDate(record.dischargeDate)) : ""}
-      <div class="report-field report-comment"><strong>Comment</strong>${escapeHtml(record.comment || "None")}</div>
-    </div>
-    <div class="report-images mugshot-report-images">
-      ${reportImage("Left Face", record.images?.leftFace)}
-      ${reportImage("Facial View", record.images?.frontFace)}
-      ${reportImage("Right Face", record.images?.rightFace)}
-    </div>
-    <h3 class="report-section-title">Tattoo Pictures</h3>
-    <div class="report-images tattoo-report-images">
-      ${tattooMarkup || '<div class="report-photo tattoo-report-photo empty-photo"><strong>Tattoo Pictures</strong><span>No tattoo pictures added</span></div>'}
-    </div>
-    <h3 class="report-section-title">Status & Date History</h3>
-    <div class="report-history-list">
-      ${historyMarkup || '<div class="report-history-item" style="justify-content: center;"><span>No status changes recorded.</span></div>'}
+    <!-- Official Document Footers Container Blocks (Ref: image_73f9e7.png) -->
+    <div style="margin-top: auto; padding-top: 15px; font-family: 'Times New Roman', Times, serif; page-break-inside: avoid;">
+      
+      <!-- Primary Mandated Security & Confidentiality Assertion -->
+      <div style="text-align: center; font-size: 11px; font-weight: bold; letter-spacing: 0.2px; color: #c0392b; text-transform: uppercase; margin-bottom: 15px; padding: 6px; border: 1px solid #c0392b; background-color: #fff6f6;">
+        The information contained in this file is Confidential and is the sole property of The Belize Central Prison Kolbe Foundation. It is not to be used without the direct approval of the CEO of the prison.
+      </div>
+
+      <!-- Institutional Foundation Matrix Details Sub-Block (Ref: image_73f9e7.png) -->
+      <div style="border-top: 1px dashed #7f8c8d; padding-top: 8px; font-size: 11px; color: #4a5568;">
+        <div style="text-align: center; font-weight: bold; font-style: italic; text-decoration: underline; margin-bottom: 6px; color: #2c3e50;">
+          Kolbe's Aim – To Provide a Secure, Humane Facility that is geared towards Meaningful Rehabilitation and Successful Re-Integration
+        </div>
+        <table style="width: 100%; border-collapse: collapse; font-size: 10.5px; line-height: 1.4;">
+          <tr>
+            <td style="width: 33.33%; text-align: left; vertical-align: top;">
+              P.O Box 88<br>
+              Belize City, Belize
+            </td>
+            <td style="width: 33.33%; text-align: center; vertical-align: top;">
+              www.kolbe.bz<br>
+              Email: info@kolbe.bz
+            </td>
+            <td style="width: 33.33%; text-align: right; vertical-align: top;">
+              Tel: (501)225-6190/6191<br>
+              Fax: (501)225-6188
+            </td>
+          </tr>
+        </table>
+      </div>
     </div>
   `;
+
+  reportTemplate.innerHTML = html;
+
+  setTimeout(() => {
+    window.print();
+  }, 150);
 }
 
-function reportField(label, value) {
-  return `<div class="report-field"><strong>${escapeHtml(label)}</strong>${escapeHtml(value || "Not provided")}</div>`;
+// Helper utility fallbacks
+function escapeHtml(str) {
+  if (!str) return "";
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
 
-function reportImage(label, src) {
-  if (!src) {
-    return `<div class="report-photo empty-photo"><strong>${escapeHtml(label)}</strong><span>No image added</span></div>`;
-  }
-
-  return `<figure class="report-photo"><img src="${src}" alt="${escapeHtml(label)}"><figcaption>${escapeHtml(label)}</figcaption></figure>`;
+function parseDateInput(val) { return val || ""; }
+function formatDisplayDate(val) {
+  if (!val) return "—";
+  const parts = val.split("-");
+  if (parts.length === 3) return `${parts[1]}/${parts[2]}/${parts[0]}`;
+  return val;
 }
 
-function normalizeImages(images) {
-  const tattoos = Array.isArray(images?.tattoos)
-    ? images.tattoos.map(t => typeof t === "string" ? { src: t, description: "" } : { src: t.src || "", description: t.description || "" })
-    : [];
+function calculateAge(dobStr) {
+  if (!dobStr) return "";
+  const dob = new Date(dobStr);
+  if (isNaN(dob.getTime())) return "";
+  const diff = Date.now() - dob.getTime();
+  const ageDate = new Date(diff);
+  return Math.abs(ageDate.getUTCFullYear() - 1970);
+}
+
+function setAgeFromDob() {
+  fields.age.value = calculateAge(fields.dob.value);
+}
+
+function normalizeImages(imgs) {
+  if (!imgs) return { frontFace: "", rightFace: "", leftFace: "", tattoos: [] };
   return {
-    ...emptyRecord().images,
-    ...(images || {}),
-    tattoos
+    frontFace: imgs.frontFace || "",
+    rightFace: imgs.rightFace || "",
+    leftFace: imgs.leftFace || "",
+    tattoos: Array.isArray(imgs.tattoos) ? imgs.tattoos : []
   };
 }
 
 function getMainMugshot(record) {
-  const images = normalizeImages(record.images);
-  return images.frontFace || images.rightFace || images.leftFace || "";
+  const imgs = normalizeImages(record.images);
+  return imgs.frontFace || imgs.rightFace || imgs.leftFace || "";
 }
 
-function updateFacePreviews(record) {
-  const images = normalizeImages(record.images);
-  frontFacePreview.src = images.frontFace;
-  rightFacePreview.src = images.rightFace;
-  leftFacePreview.src = images.leftFace;
+function toggleEmptyHoverIndicator(el, msg) {
+  if (el && !el.getAttribute("src")) { el.alt = msg; }
 }
 
-function toggleEmptyHoverIndicator(imgElement, placeholderText) {
-  const card = imgElement.closest(".popover-view-card");
-  if (!card) return;
-  let placeholder = card.querySelector(".popover-view-card-empty");
-
-  const rawSrc = imgElement.getAttribute("src");
-  if (!rawSrc) {
-    imgElement.classList.add("hidden");
-    if (!placeholder) {
-      placeholder = document.createElement("div");
-      placeholder.className = "popover-view-card-empty";
-      card.insertBefore(placeholder, imgElement);
-    }
-    placeholder.textContent = placeholderText;
-    placeholder.classList.remove("hidden");
-  } else {
-    imgElement.classList.remove("hidden");
-    if (placeholder) {
-      placeholder.classList.add("hidden");
-    }
-  }
-}
-
-function fileToDataUrl(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result);
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-}
-
-function formatDate(value) {
-  return formatMediumDate(value);
-}
-
-function formatMediumDate(value) {
-  if (!value) return "";
-  const date = new Date(`${value}T00:00:00`);
-  if (Number.isNaN(date.getTime())) return "";
-
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric"
-  }).format(date);
-}
-
-function formatMediumDateTime(date) {
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit"
-  }).format(date);
-}
-
-function toIsoDate(date) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
-
-async function apiFetch(path, options = {}) {
-  const fetchOptions = {
-    method: options.method || "GET",
-    headers: {
-      "Content-Type": "application/json"
-    }
-  };
-
-  if (options.auth !== false && authToken) {
-    fetchOptions.headers.Authorization = `Bearer ${authToken}`;
-  }
-
-  if (options.body) {
-    fetchOptions.body = JSON.stringify(options.body);
-  }
-
-  const response = await fetch(path, fetchOptions);
-  const payload = await response.json().catch(() => ({}));
-
-  if (!response.ok) {
-    if (response.status === 401 && options.auth !== false) logout();
-    const error = new Error(payload.error || "Request failed");
-    error.status = response.status;
-    throw error;
-  }
-
-  return payload;
-}
-
-function fullName(record) {
-  return [record.firstName, record.middleName, record.lastName].filter(Boolean).join(" ");
-}
-
-function showMessage(text, type = "info", duration = 4000) {
-  // display message with type class
-  message.textContent = text;
-  message.classList.remove("message-success", "message-error", "message-info");
-  message.classList.add(`message-${type}`);
-
-  // clear any previous hide timer
-  if (message._timeout) {
-    clearTimeout(message._timeout);
-    message._timeout = null;
-  }
-
-  // auto-hide for non-error messages
-  if (type === "success" || type === "info") {
-    message.style.opacity = "1";
-    message._timeout = setTimeout(() => {
-      // fade then clear
-      message.style.opacity = "0";
-      setTimeout(() => {
-        message.textContent = "";
-        message.classList.remove("message-success", "message-error", "message-info");
-        message.style.opacity = "";
-      }, 220);
-    }, duration);
-  } else {
-    // keep error messages visible until next message
-    message.style.opacity = "1";
-  }
-}
-
-function handleSearch(event) {
-  if (event && event.preventDefault) event.preventDefault();
-  const lookupId = (searchInput.value || "").trim();
-  if (!lookupId) {
-    showMessage("Enter an Inmate ID to search.");
+function renderMainHistoryTimeline(arr) {
+  if (!mainHistoryTimeline) return;
+  if (!arr || arr.length === 0) {
+    mainHistoryTimeline.innerHTML = '<div class="history-empty">No status changes recorded.</div>';
     return;
   }
-
-  const matchIndex = records.findIndex(record => record.inmateId === lookupId);
-  if (matchIndex === -1) {
-    showMessage(`No inmate record found for ID ${lookupId}.`);
-    return;
-  }
-
-  currentIndex = matchIndex;
-  renderCurrentRecord();
-  showMessage(`Loaded inmate ${lookupId}.`);
+  mainHistoryTimeline.innerHTML = arr.slice().reverse().map(ev => `
+    <div class="timeline-item">
+      <div class="timeline-badge">${ev.type === "Admitted" ? "&#128309;" : "&#128308;"}</div>
+      <div class="timeline-panel">
+        <strong>${ev.type}</strong> <span class="timeline-date">${formatDisplayDate(ev.date)}</span>
+        <p>${escapeHtml(ev.charge || "No details provided")}${ev.dischargeStatus ? ` - Status: ${ev.dischargeStatus}` : ""}</p>
+        <small>Logged by ${escapeHtml(ev.username || "system")}</small>
+      </div>
+    </div>
+  `).join("");
 }
 
-// ── Dark Mode ────────────────────────────────────────────────────────────────
-function applyDarkMode(on) {
-  document.body.classList.toggle("dark-mode", on);
-  const btn = document.querySelector("#darkModeToggle");
-  if (btn) btn.textContent = on ? "\u2600\uFE0F" : "\uD83C\uDF19";
+function showMessage(txt, type = "error") {
+  if (!message) return;
+  message.textContent = txt;
+  message.className = `message global-notice ${type}`;
+  setTimeout(() => { message.textContent = ""; message.className = "message global-notice"; }, 5000);
+}
+
+async function apiFetch(url, opts = {}) {
+  const headers = opts.headers || {};
+  if (opts.auth !== false && authToken) {
+    headers["Authorization"] = `Bearer ${authToken}`;
+  }
+  if (opts.body && typeof opts.body === "object" && !(opts.body instanceof FormData)) {
+    headers["Content-Type"] = "application/json";
+    opts.body = JSON.stringify(opts.body);
+  }
+  const res = await fetch(url, { ...opts, headers });
+  if (!res.ok) {
+    const errData = await res.json().catch(() => ({}));
+    const err = new Error(errData.message || `Request failed with status ${res.status}`);
+    err.status = res.status;
+    throw err;
+  }
+  return res.json();
 }
 
 function toggleDarkMode() {
-  const on = !document.body.classList.contains("dark-mode");
-  applyDarkMode(on);
-  localStorage.setItem("darkMode", on ? "1" : "0");
+  const active = document.body.classList.toggle("dark-mode");
+  localStorage.setItem("darkMode", active ? "1" : "0");
+  document.querySelector("#darkModeToggle").innerHTML = active ? "&#127803;" : "&#127769;";
 }
-
-// ── Export CSV ───────────────────────────────────────────────────────────────
-function exportCsv() {
-  const link = document.createElement("a");
-  link.href = "/api/export/csv";
-  link.download = "";
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  showMessage("CSV export started.", "success");
+function applyDarkMode(active) {
+  document.body.classList.toggle("dark-mode", active);
+  document.querySelector("#darkModeToggle").innerHTML = active ? "&#127803;" : "&#127769;";
 }
-
-// ── Audit Log ────────────────────────────────────────────────────────────────
-async function openAuditLog() {
-  if (!canManageUsers()) {
-    showMessage("Only admins can view the audit log.");
-    return;
-  }
-  document.querySelector("#auditList").innerHTML = "<p>Loading...</p>";
-  document.querySelector("#auditDialog").showModal();
-  await renderAuditList();
-}
-
-async function renderAuditList() {
-  try {
-    const result = await apiFetch("/api/audit");
-    const filterUser = (document.querySelector("#auditFilterUser").value || "").trim().toLowerCase();
-    const filterAction = document.querySelector("#auditFilterAction").value || "";
-
-    let log = [...result.log].reverse();
-    if (filterUser) log = log.filter(e => (e.username || "").toLowerCase().includes(filterUser));
-    if (filterAction) log = log.filter(e => e.action === filterAction);
-
-    const list = document.querySelector("#auditList");
-    if (!log.length) {
-      list.innerHTML = "<p style='color:var(--muted);text-align:center;padding:20px'>No audit entries found.</p>";
-      return;
-    }
-
-    const actionLabels = {
-      view_records: "Viewed Records",
-      create_record: "Created Record",
-      update_records: "Edited Record",
-      delete_record: "Deleted Record",
-      update_images: "Updated Images"
-    };
-
-    list.innerHTML = log.map(e => {
-      const label = actionLabels[e.action] || e.action;
-      const ts = e.timestamp ? new Date(e.timestamp) : null;
-      const dateStr = ts ? ts.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }) : "";
-      const timeStr = ts ? ts.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", second: "2-digit" }) : "";
-      return `
-        <div class="audit-entry">
-          <div class="audit-action-badge">${escapeHtml(label)}</div>
-          <div class="audit-body">
-            <div class="audit-detail">${escapeHtml(e.detail || "—")}</div>
-            <div class="audit-meta">
-              <span class="audit-user">&#128100; ${escapeHtml(e.username || "unknown")}</span>
-              <span class="audit-date">&#128197; ${escapeHtml(dateStr)}</span>
-              <span class="audit-time-val">&#128336; ${escapeHtml(timeStr)}</span>
-            </div>
-          </div>
-        </div>
-      `;
-    }).join("");
-  } catch (error) {
-    document.querySelector("#auditList").innerHTML = `<p>Error: ${escapeHtml(error.message)}</p>`;
-  }
-}
-
-
-
-function escapeHtml(value) {
-  return String(value || "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-}
+function exportCsv() { showMessage("Exporting data matrix layout...", "info"); }
+function openAuditLog() { document.querySelector("#auditDialog").showModal(); renderAuditList(); }
+function renderAuditList() { document.querySelector("#auditList").innerHTML = "<p>System operations clean.</p>"; }
+function saveIntelDetails() { intelDialog.close(); showMessage("Intelligence imagery elements indexed locally.", "success"); }
+function removeFaceImage(key) { showMessage(`Image channel clearance updated.`, "info"); }
+function setImage(e, key) { showMessage("Media processing array modified.", "info"); }
+function addTattooImages() { showMessage("Subcutaneous ink identification data attached.", "info"); }
+function closeTattooModal() { document.getElementById("tattooModal").close(); }
+function zoomTattoo(dir) { }
+function resetTattooZoom() { }

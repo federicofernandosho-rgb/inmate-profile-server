@@ -2877,3 +2877,144 @@ body.dark-mode .history-summary-card {
     padding: 8px 10px;
   }
 }
+
+@media print {
+  @page {
+    size: letter;
+    margin: 0;
+    /* Keeps default browser headers/footers removed */
+  }
+
+  html,
+  body {
+    background: #ffffff !important;
+    width: 8.5in;
+    min-height: 11in;
+    margin: 0;
+    /* Reduced padding from 0.55in to 0.4in to gain more vertical space */
+    padding: 0.4in;
+    box-sizing: border-box;
+  }
+
+  body.printing .app-shell,
+  body.printing .intel-dialog {
+    display: none !important;
+  }
+
+  body.printing .report-template {
+    display: block !important;
+    color: #000000;
+    width: 100%;
+    padding: 0;
+    font-size: 11px;
+    /* Slightly dropped baseline font size from 12px to help fit */
+  }
+
+  .report-heading {
+    border-bottom: 2px solid #000000;
+    margin-bottom: 10px;
+    /* Reduced from 16px */
+    padding-bottom: 6px;
+    /* Reduced from 9px */
+    text-align: center;
+  }
+
+  .report-heading h1 {
+    margin: 0;
+    font-size: 20px;
+    letter-spacing: 0;
+  }
+
+  .report-heading p {
+    margin: 2px 0 0;
+    font-size: 11px;
+  }
+
+  .report-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 4px 18px;
+    /* Tighter vertical rows (reduced from 7px) */
+  }
+
+  .report-field {
+    border-bottom: 1px solid #e2e8f0;
+    /* Softer line to look cleaner under tighter space */
+    padding: 3px 0;
+    /* Reduced from 5px */
+  }
+
+  .report-field strong {
+    display: block;
+    font-size: 10px;
+    text-transform: uppercase;
+  }
+
+  .report-comment {
+    grid-column: 1 / -1;
+    min-height: 40px;
+    /* Tightened from 58px */
+  }
+
+  .report-images {
+    display: grid;
+    gap: 12px;
+    /* Halved layout gaps from 24px */
+    margin-top: 10px;
+    /* Reduced from 14px */
+  }
+
+  .mugshot-report-images {
+    grid-template-columns: repeat(3, 1.45in);
+    /* Slightly narrowed photo width to pull layout up */
+    justify-content: center;
+  }
+
+  .tattoo-report-images {
+    grid-template-columns: repeat(4, 1.35in);
+    /* Slightly narrowed tattoo thumbnail widths */
+    justify-content: center;
+    gap: 8px;
+    margin-top: 6px;
+  }
+
+  .report-section-title {
+    margin: 14px 0 0;
+    /* Cut top section title spaces completely in half from 28px */
+    border-bottom: 1px solid #999999;
+    font-size: 14px;
+    text-align: center;
+  }
+
+  .report-photo {
+    display: grid;
+    grid-template-rows: 1.75in auto;
+    /* Scaled down mugshots slightly from 1.9in height */
+    width: 1.45in;
+    margin: 0;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .report-photo img {
+    width: 1.45in;
+    height: 1.75in;
+    object-fit: cover;
+    border: 1px solid #777777;
+  }
+
+  .tattoo-report-photo {
+    grid-template-rows: 1.35in auto;
+    width: 1.35in;
+  }
+
+  .tattoo-report-photo img {
+    width: 1.35in;
+    height: 1.35in;
+  }
+
+  .address-field,
+  .comment-field {
+    grid-column: 1 / -1;
+  }
+}

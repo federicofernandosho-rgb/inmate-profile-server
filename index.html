@@ -1,490 +1,501 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Inmate Profile</title>
-    <link rel="stylesheet" href="styles.css">
-  </head>
-  <body>
-    <section class="login-shell" id="loginShell">
-      <div class="login-card">
-        <h1>Inmate Profile</h1>
-        <p id="loginIntro">Sign in to continue.</p>
 
-        <form id="loginForm" class="login-form">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Belize Central Prison Kolbe Foundation</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+  <section class="login-shell" id="loginShell">
+    <div class="login-card">
+      <h1>Inmate Profile</h1>
+      <p id="loginIntro">Sign in to continue.</p>
+
+      <form id="loginForm" class="login-form">
+        <label class="login-field">
+          <span>Username</span>
+          <input id="loginUsername" type="text" autocomplete="username" required>
+        </label>
+        <label class="login-field">
+          <span>Password</span>
+          <input id="loginPassword" type="password" autocomplete="current-password" required>
+        </label>
+        <button type="submit">Log In</button>
+      </form>
+
+      <form id="firstUserForm" class="login-form hidden">
+        <label class="login-field">
+          <span>Create Username</span>
+          <input id="firstUsername" type="text" autocomplete="username">
+        </label>
+        <label class="login-field">
+          <span>Create Password</span>
+          <input id="firstPassword" type="password" autocomplete="new-password">
+        </label>
+        <button type="submit">Create Super Admin</button>
+      </form>
+
+      <p class="message" id="loginMessage" role="status" aria-live="polite"></p>
+    </div>
+  </section>
+
+  <main class="app-shell hidden" id="appShell">
+    <header class="app-header">
+      <div>
+        <h1>Inmate Profile</h1>
+        <p>Inmate intelligence record management</p>
+      </div>
+      <div class="header-tools">
+        <div class="session-status" id="sessionStatus">Not signed in</div>
+        <button class="secondary" type="button" id="darkModeToggle" aria-label="Toggle dark mode"
+          title="Toggle dark mode">&#127769;</button>
+        <button class="secondary" type="button" id="manageUsers">Users</button>
+        <button class="secondary" type="button" id="auditLogButton">Audit Log</button>
+        <button class="secondary" type="button" id="exportCsvButton">Export CSV</button>
+        <button class="secondary" type="button" id="logoutButton">Log Out</button>
+        <div class="record-status" id="recordStatus">Record 1 of 1</div>
+      </div>
+    </header>
+
+    <section class="workspace" aria-label="Inmate profile form">
+      <form id="inmateForm" autocomplete="off">
+        <div class="filter-bar" id="filterBar">
+          <label class="filter-item">
+            <span>Search by ID</span>
+            <div class="search-bar">
+              <input id="searchInput" name="searchInput" type="text" inputmode="numeric" maxlength="7"
+                placeholder="Search by ID">
+              <button id="searchButton" type="button">Search</button>
+            </div>
+          </label>
+          <label class="filter-item">
+            <span>Status</span>
+            <select id="filterStatus">
+              <option value="all">All</option>
+              <option value="in">In Prison</option>
+              <option value="out">Out of Prison</option>
+            </select>
+          </label>
+          <label class="filter-item">
+            <span>Affiliation</span>
+            <input id="filterAffiliation" type="text" placeholder="Filter affiliation...">
+          </label>
+          <label class="filter-item">
+            <span>Gang</span>
+            <input id="filterGang" type="text" placeholder="Filter gang...">
+          </label>
+          <label class="filter-item">
+            <span>Date From</span>
+            <input id="filterDateFrom" type="date">
+          </label>
+          <label class="filter-item">
+            <span>Date To</span>
+            <input id="filterDateTo" type="date">
+          </label>
+          <button type="button" id="applyFilter">Apply</button>
+          <button type="button" class="secondary" id="clearFilter">Clear</button>
+        </div>
+
+        <div class="id-status-row">
+          <div class="search-and-id">
+            <label class="field inmate-id">
+              <span>Inmate ID</span>
+              <input id="inmateId" name="inmateId" type="text" inputmode="numeric" maxlength="7" required>
+            </label>
+          </div>
+          <div class="status-block">
+            <fieldset class="status-options incarceration-status-field">
+              <legend>Incarceration Status</legend>
+              <label>
+                <input id="incarcerationIn" name="incarcerationStatus" type="radio" value="in">
+                <span>In prison</span>
+              </label>
+              <label>
+                <input id="incarcerationOut" name="incarcerationStatus" type="radio" value="out">
+                <span>Out of prison</span>
+              </label>
+            </fieldset>
+            <label class="field status-date-field hidden">
+              <span>Status Date</span>
+              <input id="statusDate" name="statusDate" type="date">
+            </label>
+          </div>
+          <aside class="photo-strip" aria-label="Main mugshot preview">
+            <div class="photo-frame">
+              <img id="mainPreview" alt="Inmate mugshot preview">
+              <span id="mainPreviewText">No photo</span>
+            </div>
+
+            <!-- Hover Views Popover -->
+            <div class="photo-views-popover">
+              <div class="popover-title">Inmate Profile Views</div>
+              <div class="popover-grid">
+                <div class="popover-view-card">
+                  <img id="hoverFrontPreview" src="" alt="Front Face">
+                  <span class="hover-view-label">Front View</span>
+                </div>
+                <div class="popover-view-card">
+                  <img id="hoverRightPreview" src="" alt="Right Profile">
+                  <span class="hover-view-label">Right Profile</span>
+                </div>
+                <div class="popover-view-card">
+                  <img id="hoverLeftPreview" src="" alt="Left Profile">
+                  <span class="hover-view-label">Left Profile</span>
+                </div>
+              </div>
+            </div>
+
+            <button class="secondary" type="button" id="openIntelModal">Gang &amp; Photos</button>
+          </aside>
+        </div>
+
+        <div class="form-grid">
+          <label class="field name-field">
+            <span>First Name</span>
+            <input id="firstName" name="firstName" type="text" required>
+          </label>
+
+          <label class="field name-field">
+            <span>Last Name</span>
+            <input id="lastName" name="lastName" type="text" required>
+          </label>
+
+          <label class="field name-field">
+            <span>Middle Name</span>
+            <input id="middleName" name="middleName" type="text">
+          </label>
+
+          <label class="field alias-field">
+            <span>Alias "AKA"</span>
+            <input id="alias" name="alias" type="text">
+          </label>
+
+          <label class="field dob-field">
+            <span>DOB</span>
+            <input id="dob" name="dob" type="date">
+          </label>
+
+          <label class="field age-field">
+            <span>Age</span>
+            <input id="age" name="age" type="number" min="0" max="130" readonly>
+          </label>
+
+          <label class="field address-field">
+            <span>Address</span>
+            <input id="address" name="address" type="text">
+          </label>
+
+          <label class="field affiliation-field">
+            <span>Affiliation</span>
+            <input id="affiliation" name="affiliation" type="text">
+          </label>
+
+          <label class="field comment-field">
+            <span>Comment</span>
+            <textarea id="comment" name="comment" rows="5"></textarea>
+          </label>
+
+        </div>
+      </form>
+    </section>
+
+    <nav class="actions" aria-label="Record actions">
+      <div class="actions-left">
+        <button type="button" id="newRecord" data-edit-only>New Inmate</button>
+        <button type="button" id="saveRecord" data-edit-only>Save Record</button>
+        <button type="button" id="cancelRecord" data-edit-only>Cancel</button>
+        <button type="button" id="updateRecord" data-edit-only>Update Record</button>
+        <button type="button" id="deleteRecord" class="danger-button" data-admin-only>Delete Record</button>
+      </div>
+      <div class="actions-center">
+        <button type="button" id="previousRecord">Previous</button>
+        <button type="button" id="nextRecord">Next</button>
+      </div>
+      <button type="button" id="generatePdf">Generate PDF</button>
+      <button type="button" id="viewHistory">History</button>
+      </div>
+    </nav>
+
+    <p class="message global-notice" id="message" role="status" aria-live="polite"></p>
+  </main>
+
+  <dialog id="intelDialog" class="intel-dialog">
+    <form method="dialog" class="modal-shell">
+      <header class="modal-header">
+        <div>
+          <h2>Gang Affiliation & Image Intel</h2>
+        </div>
+        <button type="button" class="icon-button" id="closeModal" aria-label="Close modal">X</button>
+      </header>
+
+      <section class="modal-body">
+        <div class="intel-fields">
+          <!-- Gang affiliation and inmate name removed per UX request; modal now focuses on images -->
+        </div>
+
+        <div class="image-grid">
+          <article class="image-panel">
+            <div class="image-box">
+              <img id="frontFacePreview" alt="Front facial mugshot">
+              <span>No facial view photo</span>
+              <button class="remove-image" type="button" data-image-key="frontFace" data-edit-only
+                aria-label="Remove facial view photo">X</button>
+            </div>
+            <label class="upload-button">
+              Facial View
+              <input id="frontFaceUpload" type="file" accept="image/*">
+            </label>
+          </article>
+
+          <article class="image-panel">
+            <div class="image-box">
+              <img id="rightFacePreview" alt="Right side face mugshot">
+              <span>No right side photo</span>
+              <button class="remove-image" type="button" data-image-key="rightFace" data-edit-only
+                aria-label="Remove right side face photo">X</button>
+            </div>
+            <label class="upload-button">
+              Right Face
+              <input id="rightFaceUpload" type="file" accept="image/*">
+            </label>
+          </article>
+
+          <article class="image-panel">
+            <div class="image-box">
+              <img id="leftFacePreview" alt="Left side face mugshot">
+              <span>No left side photo</span>
+              <button class="remove-image" type="button" data-image-key="leftFace" data-edit-only
+                aria-label="Remove left side face photo">X</button>
+            </div>
+            <label class="upload-button">
+              Left Face
+              <input id="leftFaceUpload" type="file" accept="image/*">
+            </label>
+          </article>
+
+          <article class="image-panel tattoo-panel">
+            <div class="tattoo-list" id="tattooList"></div>
+            <label class="upload-button">
+              Add Tattoo Pictures
+              <input id="tattooUpload" type="file" accept="image/*" multiple>
+            </label>
+          </article>
+        </div>
+
+        <!-- Status & date history removed from modal per UX request -->
+      </section>
+
+      <footer class="modal-actions">
+        <button type="button" id="saveIntel" data-edit-only>Save Intel</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <dialog id="usersDialog" class="users-dialog">
+    <div class="modal-shell">
+      <header class="modal-header">
+        <div>
+          <h2>User Access</h2>
+          <p>Create users and assign access level.</p>
+        </div>
+        <button type="button" class="icon-button" id="closeUsersModal" aria-label="Close users modal">X</button>
+      </header>
+
+      <section class="modal-body">
+        <form id="createUserForm" class="user-form">
           <label class="login-field">
             <span>Username</span>
-            <input id="loginUsername" type="text" autocomplete="username" required>
+            <input id="newUsername" type="text" autocomplete="off">
           </label>
           <label class="login-field">
             <span>Password</span>
-            <input id="loginPassword" type="password" autocomplete="current-password" required>
-          </label>
-          <button type="submit">Log In</button>
-        </form>
-
-        <form id="firstUserForm" class="login-form hidden">
-          <label class="login-field">
-            <span>Create Username</span>
-            <input id="firstUsername" type="text" autocomplete="username">
+            <input id="newPassword" type="password" autocomplete="new-password">
           </label>
           <label class="login-field">
-            <span>Create Password</span>
-            <input id="firstPassword" type="password" autocomplete="new-password">
+            <span>Access</span>
+            <select id="newUserRole">
+              <option value="admin">Super Admin</option>
+              <option value="entry">Data Entry</option>
+              <option value="readonly">Read Only</option>
+            </select>
           </label>
-          <button type="submit">Create Super Admin</button>
+          <button type="submit">Create User</button>
         </form>
 
-        <p class="message" id="loginMessage" role="status" aria-live="polite"></p>
+        <div class="user-list" id="userList"></div>
+        <p class="message" id="userMessage" role="status" aria-live="polite"></p>
+      </section>
+    </div>
+  </dialog>
+
+  <dialog class="tattoo-modal-overlay" id="tattooModal">
+    <div class="tattoo-modal">
+      <button type="button" class="tattoo-modal-close" id="tattooModalClose" aria-label="Close">&times;</button>
+      <div class="tattoo-modal-controls">
+        <button type="button" class="zoom-btn" id="zoomInBtn" aria-label="Zoom in">+</button>
+        <button type="button" class="zoom-btn" id="zoomOutBtn" aria-label="Zoom out">&minus;</button>
+        <button type="button" class="zoom-btn" id="zoomResetBtn" aria-label="Reset zoom">1:1</button>
       </div>
-    </section>
+      <div class="tattoo-modal-img-wrapper">
+        <img id="tattooModalImg" src="" alt="">
+      </div>
+      <p class="tattoo-modal-desc" id="tattooModalDesc"></p>
+    </div>
+  </dialog>
 
-    <main class="app-shell hidden" id="appShell">
-      <header class="app-header">
+  <dialog class="tattoo-desc-modal-overlay" id="tattooDescModal">
+    <div class="tattoo-desc-modal">
+      <h3>Add Tattoo Description</h3>
+      <div class="tattoo-desc-preview">
+        <img id="tattooDescPreview" src="" alt="Tattoo preview">
+      </div>
+      <p class="tattoo-desc-filename" id="tattooDescFileName"></p>
+      <textarea id="tattooDescInput" placeholder="Describe this tattoo (e.g., location, design, symbols)..."
+        rows="3"></textarea>
+      <div class="tattoo-desc-actions">
+        <button type="button" class="btn-cancel" id="tattooDescCancel">Cancel</button>
+        <button type="button" class="btn-save" id="tattooDescSave">Save</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Delete Confirmation Dialog -->
+  <dialog id="deleteConfirmDialog" class="confirm-dialog">
+    <div class="confirm-modal">
+      <div class="confirm-icon">&#9888;</div>
+      <h2 class="confirm-title">Delete Record?</h2>
+      <p class="confirm-message" id="deleteConfirmMessage">Are you sure you want to delete this record?</p>
+      <p class="confirm-warning">This action <strong>cannot be undone.</strong></p>
+      <div class="confirm-actions">
+        <button type="button" class="secondary" id="deleteCancelBtn">Cancel</button>
+        <button type="button" class="danger-button" id="deleteConfirmBtn">Yes, Delete</button>
+      </div>
+    </div>
+  </dialog>
+
+  <section id="reportTemplate" class="report-template" aria-hidden="true"></section>
+
+  <!-- Admission Details Dialog -->
+  <dialog id="admissionDialog" class="users-dialog">
+    <div class="modal-shell">
+      <header class="modal-header">
         <div>
-          <h1>Inmate Profile</h1>
-          <p>Inmate intelligence record management</p>
+          <h2>Admission Details</h2>
+          <p>Enter details for the inmate's admission.</p>
         </div>
-        <div class="header-tools">
-          <div class="session-status" id="sessionStatus">Not signed in</div>
-          <button class="secondary" type="button" id="darkModeToggle" aria-label="Toggle dark mode" title="Toggle dark mode">&#127769;</button>
-          <button class="secondary" type="button" id="manageUsers">Users</button>
-          <button class="secondary" type="button" id="auditLogButton">Audit Log</button>
-          <button class="secondary" type="button" id="exportCsvButton">Export CSV</button>
-          <button class="secondary" type="button" id="logoutButton">Log Out</button>
-          <div class="record-status" id="recordStatus">Record 1 of 1</div>
-        </div>
+        <button type="button" class="icon-button" id="closeAdmissionModal" aria-label="Close modal">X</button>
       </header>
-
-      <section class="workspace" aria-label="Inmate profile form">
-        <form id="inmateForm" autocomplete="off">
-          <div class="filter-bar" id="filterBar">
-            <label class="filter-item">
-              <span>Search by ID</span>
-              <div class="search-bar">
-                <input id="searchInput" name="searchInput" type="text" inputmode="numeric" maxlength="7" placeholder="Search by ID">
-                <button id="searchButton" type="button">Search</button>
-              </div>
-            </label>
-            <label class="filter-item">
-              <span>Status</span>
-              <select id="filterStatus">
-                <option value="all">All</option>
-                <option value="in">In Prison</option>
-                <option value="out">Out of Prison</option>
-              </select>
-            </label>
-            <label class="filter-item">
-              <span>Affiliation</span>
-              <input id="filterAffiliation" type="text" placeholder="Filter affiliation...">
-            </label>
-            <label class="filter-item">
-              <span>Gang</span>
-              <input id="filterGang" type="text" placeholder="Filter gang...">
-            </label>
-            <label class="filter-item">
-              <span>Date From</span>
-              <input id="filterDateFrom" type="date">
-            </label>
-            <label class="filter-item">
-              <span>Date To</span>
-              <input id="filterDateTo" type="date">
-            </label>
-            <button type="button" id="applyFilter">Apply</button>
-            <button type="button" class="secondary" id="clearFilter">Clear</button>
-          </div>
-
-          <div class="id-status-row">
-            <div class="search-and-id">
-              <label class="field inmate-id">
-                <span>Inmate ID</span>
-                <input id="inmateId" name="inmateId" type="text" inputmode="numeric" maxlength="7" required>
-              </label>
-            </div>
-            <div class="status-block">
-              <fieldset class="status-options incarceration-status-field">
-                <legend>Incarceration Status</legend>
-                <label>
-                  <input id="incarcerationIn" name="incarcerationStatus" type="radio" value="in">
-                  <span>In prison</span>
-                </label>
-                <label>
-                  <input id="incarcerationOut" name="incarcerationStatus" type="radio" value="out">
-                  <span>Out of prison</span>
-                </label>
-              </fieldset>
-              <label class="field status-date-field hidden">
-                <span>Status Date</span>
-                <input id="statusDate" name="statusDate" type="date">
-              </label>
-            </div>
-            <aside class="photo-strip" aria-label="Main mugshot preview">
-              <div class="photo-frame">
-                <img id="mainPreview" alt="Inmate mugshot preview">
-                <span id="mainPreviewText">No photo</span>
-              </div>
-              
-              <!-- Hover Views Popover -->
-              <div class="photo-views-popover">
-                <div class="popover-title">Inmate Profile Views</div>
-                <div class="popover-grid">
-                  <div class="popover-view-card">
-                    <img id="hoverFrontPreview" src="" alt="Front Face">
-                    <span class="hover-view-label">Front View</span>
-                  </div>
-                  <div class="popover-view-card">
-                    <img id="hoverRightPreview" src="" alt="Right Profile">
-                    <span class="hover-view-label">Right Profile</span>
-                  </div>
-                  <div class="popover-view-card">
-                    <img id="hoverLeftPreview" src="" alt="Left Profile">
-                    <span class="hover-view-label">Left Profile</span>
-                  </div>
-                </div>
-              </div>
-              
-              <button class="secondary" type="button" id="openIntelModal">Gang &amp; Photos</button>
-            </aside>
-          </div>
-
-          <div class="form-grid">
-            <label class="field name-field">
-              <span>First Name</span>
-              <input id="firstName" name="firstName" type="text" required>
-            </label>
-
-            <label class="field name-field">
-              <span>Last Name</span>
-              <input id="lastName" name="lastName" type="text" required>
-            </label>
-
-            <label class="field name-field">
-              <span>Middle Name</span>
-              <input id="middleName" name="middleName" type="text">
-            </label>
-
-            <label class="field alias-field">
-              <span>Alias "AKA"</span>
-              <input id="alias" name="alias" type="text">
-            </label>
-
-            <label class="field dob-field">
-              <span>DOB</span>
-              <input id="dob" name="dob" type="date">
-            </label>
-
-            <label class="field age-field">
-              <span>Age</span>
-              <input id="age" name="age" type="number" min="0" max="130" readonly>
-            </label>
-
-            <label class="field address-field">
-              <span>Address</span>
-              <input id="address" name="address" type="text">
-            </label>
-
-            <label class="field affiliation-field">
-              <span>Affiliation</span>
-              <input id="affiliation" name="affiliation" type="text">
-            </label>
-
-            <label class="field comment-field">
-              <span>Comment</span>
-              <textarea id="comment" name="comment" rows="5"></textarea>
-            </label>
-
+      <section class="modal-body">
+        <form id="admissionForm" class="user-form">
+          <label class="login-field">
+            <span>Admission Date</span>
+            <input id="modalAdmissionDate" type="date" required>
+          </label>
+          <label class="login-field">
+            <span>Charge Admitted On</span>
+            <input id="modalAdmissionCharge" type="text" autocomplete="off" required>
+          </label>
+          <div style="display: flex; gap: 1rem; margin-top: 1.5rem; justify-content: flex-end;">
+            <button type="button" class="secondary" id="admissionCancelBtn">Cancel</button>
+            <button type="submit" id="admissionConfirmBtn">Confirm</button>
           </div>
         </form>
       </section>
+    </div>
+  </dialog>
 
-      <nav class="actions" aria-label="Record actions">
-        <div class="actions-left">
-          <button type="button" id="newRecord" data-edit-only>New Inmate</button>
-          <button type="button" id="saveRecord" data-edit-only>Save Record</button>
-          <button type="button" id="cancelRecord" data-edit-only>Cancel</button>
-          <button type="button" id="updateRecord" data-edit-only>Update Record</button>
-          <button type="button" id="deleteRecord" class="danger-button" data-admin-only>Delete Record</button>
+  <!-- Discharge Details Dialog -->
+  <dialog id="dischargeDialog" class="users-dialog">
+    <div class="modal-shell">
+      <header class="modal-header">
+        <div>
+          <h2>Discharge Details</h2>
+          <p>Enter details for the inmate's discharge.</p>
         </div>
-        <div class="actions-center">
-          <button type="button" id="previousRecord">Previous</button>
-          <button type="button" id="nextRecord">Next</button>
+        <button type="button" class="icon-button" id="closeDischargeModal" aria-label="Close modal">X</button>
+      </header>
+      <section class="modal-body">
+        <form id="dischargeForm" class="user-form">
+          <label class="login-field">
+            <span>Discharge Date</span>
+            <input id="modalDischargeDate" type="date" required>
+          </label>
+          <label class="login-field">
+            <span>Charge Incarcerated For</span>
+            <input id="modalDischargeCharge" type="text" autocomplete="off" required>
+          </label>
+          <label class="login-field">
+            <span>Discharge Status</span>
+            <select id="modalDischargeStatus" required>
+              <option value="Remanded">Remanded</option>
+              <option value="Convicted">Convicted</option>
+            </select>
+          </label>
+          <div style="display: flex; gap: 1rem; margin-top: 1.5rem; justify-content: flex-end;">
+            <button type="button" class="secondary" id="dischargeCancelBtn">Cancel</button>
+            <button type="submit" id="dischargeConfirmBtn">Confirm</button>
+          </div>
+        </form>
+      </section>
+    </div>
+  </dialog>
+
+  <dialog id="auditDialog" class="audit-dialog">
+    <div class="modal-shell">
+      <header class="modal-header">
+        <div>
+          <h2>Audit Log</h2>
+          <p>System activity history</p>
         </div>
-          <button type="button" id="generatePdf">Generate PDF</button>
-          <button type="button" id="viewHistory">History</button>
+        <button type="button" class="icon-button" id="closeAuditModal" aria-label="Close audit log">X</button>
+      </header>
+      <section class="modal-body">
+        <div class="audit-filters">
+          <label>
+            User
+            <input id="auditFilterUser" type="text" placeholder="Filter by user...">
+          </label>
+          <label>
+            Action
+            <select id="auditFilterAction">
+              <option value="">All actions</option>
+              <option value="view_records">Viewed Records</option>
+              <option value="update_records">Edited Record</option>
+              <option value="create_record">Created Record</option>
+              <option value="delete_record">Deleted Record</option>
+              <option value="update_images">Updated Images</option>
+            </select>
+          </label>
+          <button type="button" id="auditApplyFilter">Filter</button>
         </div>
-      </nav>
-
-      <p class="message global-notice" id="message" role="status" aria-live="polite"></p>
-    </main>
-
-    <dialog id="intelDialog" class="intel-dialog">
-      <form method="dialog" class="modal-shell">
-        <header class="modal-header">
-          <div>
-            <h2>Gang Affiliation & Image Intel</h2>
-          </div>
-          <button type="button" class="icon-button" id="closeModal" aria-label="Close modal">X</button>
-        </header>
-
-        <section class="modal-body">
-          <div class="intel-fields">
-            <!-- Gang affiliation and inmate name removed per UX request; modal now focuses on images -->
-          </div>
-
-          <div class="image-grid">
-            <article class="image-panel">
-              <div class="image-box">
-                <img id="frontFacePreview" alt="Front facial mugshot">
-                <span>No facial view photo</span>
-                <button class="remove-image" type="button" data-image-key="frontFace" data-edit-only aria-label="Remove facial view photo">X</button>
-              </div>
-              <label class="upload-button">
-                Facial View
-                <input id="frontFaceUpload" type="file" accept="image/*">
-              </label>
-            </article>
-
-            <article class="image-panel">
-              <div class="image-box">
-                <img id="rightFacePreview" alt="Right side face mugshot">
-                <span>No right side photo</span>
-                <button class="remove-image" type="button" data-image-key="rightFace" data-edit-only aria-label="Remove right side face photo">X</button>
-              </div>
-              <label class="upload-button">
-                Right Face
-                <input id="rightFaceUpload" type="file" accept="image/*">
-              </label>
-            </article>
-
-            <article class="image-panel">
-              <div class="image-box">
-                <img id="leftFacePreview" alt="Left side face mugshot">
-                <span>No left side photo</span>
-                <button class="remove-image" type="button" data-image-key="leftFace" data-edit-only aria-label="Remove left side face photo">X</button>
-              </div>
-              <label class="upload-button">
-                Left Face
-                <input id="leftFaceUpload" type="file" accept="image/*">
-              </label>
-            </article>
-
-            <article class="image-panel tattoo-panel">
-              <div class="tattoo-list" id="tattooList"></div>
-              <label class="upload-button">
-                Add Tattoo Pictures
-                <input id="tattooUpload" type="file" accept="image/*" multiple>
-              </label>
-            </article>
-          </div>
-
-          <!-- Status & date history removed from modal per UX request -->
-        </section>
-
-        <footer class="modal-actions">
-          <button type="button" id="saveIntel" data-edit-only>Save Intel</button>
-        </footer>
-      </form>
-    </dialog>
-
-    <dialog id="usersDialog" class="users-dialog">
-      <div class="modal-shell">
-        <header class="modal-header">
-          <div>
-            <h2>User Access</h2>
-            <p>Create users and assign access level.</p>
-          </div>
-          <button type="button" class="icon-button" id="closeUsersModal" aria-label="Close users modal">X</button>
-        </header>
-
-        <section class="modal-body">
-          <form id="createUserForm" class="user-form">
-            <label class="login-field">
-              <span>Username</span>
-              <input id="newUsername" type="text" autocomplete="off">
-            </label>
-            <label class="login-field">
-              <span>Password</span>
-              <input id="newPassword" type="password" autocomplete="new-password">
-            </label>
-            <label class="login-field">
-              <span>Access</span>
-              <select id="newUserRole">
-                <option value="admin">Super Admin</option>
-                <option value="entry">Data Entry</option>
-                <option value="readonly">Read Only</option>
-              </select>
-            </label>
-            <button type="submit">Create User</button>
-          </form>
-
-          <div class="user-list" id="userList"></div>
-          <p class="message" id="userMessage" role="status" aria-live="polite"></p>
-        </section>
-      </div>
-    </dialog>
-
-    <dialog class="tattoo-modal-overlay" id="tattooModal">
-      <div class="tattoo-modal">
-        <button type="button" class="tattoo-modal-close" id="tattooModalClose" aria-label="Close">&times;</button>
-        <div class="tattoo-modal-controls">
-          <button type="button" class="zoom-btn" id="zoomInBtn" aria-label="Zoom in">+</button>
-          <button type="button" class="zoom-btn" id="zoomOutBtn" aria-label="Zoom out">&minus;</button>
-          <button type="button" class="zoom-btn" id="zoomResetBtn" aria-label="Reset zoom">1:1</button>
+        <div class="audit-list" id="auditList">
+          <p>Loading...</p>
         </div>
-        <div class="tattoo-modal-img-wrapper">
-          <img id="tattooModalImg" src="" alt="">
+      </section>
+    </div>
+  </dialog>
+
+  <dialog id="historyDialog" class="history-dialog">
+    <div class="modal-shell">
+      <header class="modal-header">
+        <div>
+          <h2>Incarceration History</h2>
+          <p>Status &amp; date history for this inmate</p>
         </div>
-        <p class="tattoo-modal-desc" id="tattooModalDesc"></p>
-      </div>
-    </dialog>
-
-    <dialog class="tattoo-desc-modal-overlay" id="tattooDescModal">
-      <div class="tattoo-desc-modal">
-        <h3>Add Tattoo Description</h3>
-        <div class="tattoo-desc-preview">
-          <img id="tattooDescPreview" src="" alt="Tattoo preview">
+        <button type="button" class="icon-button" id="closeHistoryModal" aria-label="Close history">X</button>
+      </header>
+      <section class="modal-body">
+        <div class="history-timeline" id="mainHistoryTimeline">
+          <div class="history-empty">No status changes recorded.</div>
         </div>
-        <p class="tattoo-desc-filename" id="tattooDescFileName"></p>
-        <textarea id="tattooDescInput" placeholder="Describe this tattoo (e.g., location, design, symbols)..." rows="3"></textarea>
-        <div class="tattoo-desc-actions">
-          <button type="button" class="btn-cancel" id="tattooDescCancel">Cancel</button>
-          <button type="button" class="btn-save" id="tattooDescSave">Save</button>
-        </div>
-      </div>
-    </dialog>
+      </section>
+    </div>
+  </dialog>
 
-    <!-- Delete Confirmation Dialog -->
-    <dialog id="deleteConfirmDialog" class="confirm-dialog">
-      <div class="confirm-modal">
-        <div class="confirm-icon">&#9888;</div>
-        <h2 class="confirm-title">Delete Record?</h2>
-        <p class="confirm-message" id="deleteConfirmMessage">Are you sure you want to delete this record?</p>
-        <p class="confirm-warning">This action <strong>cannot be undone.</strong></p>
-        <div class="confirm-actions">
-          <button type="button" class="secondary" id="deleteCancelBtn">Cancel</button>
-          <button type="button" class="danger-button" id="deleteConfirmBtn">Yes, Delete</button>
-        </div>
-      </div>
-    </dialog>
+  <script src="app.js"></script>
+</body>
 
-    <section id="reportTemplate" class="report-template" aria-hidden="true"></section>
-
-    <!-- Admission Details Dialog -->
-    <dialog id="admissionDialog" class="users-dialog">
-      <div class="modal-shell">
-        <header class="modal-header">
-          <div>
-            <h2>Admission Details</h2>
-            <p>Enter details for the inmate's admission.</p>
-          </div>
-          <button type="button" class="icon-button" id="closeAdmissionModal" aria-label="Close modal">X</button>
-        </header>
-        <section class="modal-body">
-          <form id="admissionForm" class="user-form">
-            <label class="login-field">
-              <span>Admission Date</span>
-              <input id="modalAdmissionDate" type="date" required>
-            </label>
-            <label class="login-field">
-              <span>Charge Admitted On</span>
-              <input id="modalAdmissionCharge" type="text" autocomplete="off" required>
-            </label>
-            <div style="display: flex; gap: 1rem; margin-top: 1.5rem; justify-content: flex-end;">
-              <button type="button" class="secondary" id="admissionCancelBtn">Cancel</button>
-              <button type="submit" id="admissionConfirmBtn">Confirm</button>
-            </div>
-          </form>
-        </section>
-      </div>
-    </dialog>
-
-    <!-- Discharge Details Dialog -->
-    <dialog id="dischargeDialog" class="users-dialog">
-      <div class="modal-shell">
-        <header class="modal-header">
-          <div>
-            <h2>Discharge Details</h2>
-            <p>Enter details for the inmate's discharge.</p>
-          </div>
-          <button type="button" class="icon-button" id="closeDischargeModal" aria-label="Close modal">X</button>
-        </header>
-        <section class="modal-body">
-          <form id="dischargeForm" class="user-form">
-            <label class="login-field">
-              <span>Discharge Date</span>
-              <input id="modalDischargeDate" type="date" required>
-            </label>
-            <label class="login-field">
-              <span>Charge Incarcerated For</span>
-              <input id="modalDischargeCharge" type="text" autocomplete="off" required>
-            </label>
-            <label class="login-field">
-              <span>Discharge Status</span>
-              <select id="modalDischargeStatus" required>
-                <option value="Remanded">Remanded</option>
-                <option value="Convicted">Convicted</option>
-              </select>
-            </label>
-            <div style="display: flex; gap: 1rem; margin-top: 1.5rem; justify-content: flex-end;">
-              <button type="button" class="secondary" id="dischargeCancelBtn">Cancel</button>
-              <button type="submit" id="dischargeConfirmBtn">Confirm</button>
-            </div>
-          </form>
-        </section>
-      </div>
-    </dialog>
-
-    <dialog id="auditDialog" class="audit-dialog">
-      <div class="modal-shell">
-        <header class="modal-header">
-          <div>
-            <h2>Audit Log</h2>
-            <p>System activity history</p>
-          </div>
-          <button type="button" class="icon-button" id="closeAuditModal" aria-label="Close audit log">X</button>
-        </header>
-        <section class="modal-body">
-          <div class="audit-filters">
-            <label>
-              User
-              <input id="auditFilterUser" type="text" placeholder="Filter by user...">
-            </label>
-            <label>
-              Action
-              <select id="auditFilterAction">
-                <option value="">All actions</option>
-                <option value="view_records">Viewed Records</option>
-                <option value="update_records">Edited Record</option>
-                <option value="create_record">Created Record</option>
-                <option value="delete_record">Deleted Record</option>
-                <option value="update_images">Updated Images</option>
-              </select>
-            </label>
-            <button type="button" id="auditApplyFilter">Filter</button>
-          </div>
-          <div class="audit-list" id="auditList"><p>Loading...</p></div>
-        </section>
-      </div>
-    </dialog>
-
-    <dialog id="historyDialog" class="history-dialog">
-      <div class="modal-shell">
-        <header class="modal-header">
-          <div>
-            <h2>Incarceration History</h2>
-            <p>Status &amp; date history for this inmate</p>
-          </div>
-          <button type="button" class="icon-button" id="closeHistoryModal" aria-label="Close history">X</button>
-        </header>
-        <section class="modal-body">
-          <div class="history-timeline" id="mainHistoryTimeline">
-            <div class="history-empty">No status changes recorded.</div>
-          </div>
-        </section>
-      </div>
-    </dialog>
-
-    <script src="app.js"></script>
-  </body>
 </html>

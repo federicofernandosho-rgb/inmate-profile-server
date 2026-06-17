@@ -1174,11 +1174,11 @@ function renderTattoos(tattoos) {
   tattoos.forEach((tat, index) => {
     const card = document.createElement("div");
     card.className = "tattoo-card";
-    card.style.cssText = "position:relative; border:1px solid var(--border-color); padding:4px; border-radius:4px; background:var(--bg-main); text-align:center;";
+    card.style.cssText = "position:relative; border:1px solid var(--border-color); padding:4px; border-radius:4px; background:var(--bg-main); text-align:center; overflow:hidden;";
 
     card.innerHTML = `
       <img src="${tat.src}" alt="Tattoo file" style="width:100%; height:80px; object-fit:cover; border-radius:2px; cursor:pointer;">
-      <div class="tattoo-desc" style="font-size:10px; text-overflow:ellipsis; overflow:hidden; white-space:nowrap; margin-top:4px;">${escapeHtml(tat.description)}</div>
+      <div class="tattoo-desc" style="font-size:13px; font-weight:600; color:#111111; background:#ffffff; text-overflow:ellipsis; overflow:hidden; white-space:nowrap; margin-top:4px; padding:3px 4px; border-radius:2px;">${escapeHtml(tat.description)}</div>
       <button type="button" class="danger-button" style="position:absolute; top:2px; right:2px; padding:2px 6px; font-size:9px; line-height:1;" ${canEdit() ? "" : "disabled"}>&times;</button>
     `;
 

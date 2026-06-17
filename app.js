@@ -250,6 +250,8 @@ fields.dob.addEventListener("input", setAgeFromDob);
 window.addEventListener("afterprint", () => {
   document.body.classList.remove("printing");
   reportTemplate.innerHTML = "";
+  const dynamicStyle = document.getElementById("dynamic-print-style");
+  if (dynamicStyle) dynamicStyle.remove();
 });
 
 // Photo hover popover hook layout configurations
@@ -1473,285 +1475,289 @@ function generatePdfReport() {
     overflowPageHtml += `</div></div>`;
   }
 
-  reportTemplate.innerHTML = `
-    <style>
-      @media print {
-        html, body {
-          background: #fff;
-          margin: 0 !important;
-          padding: 0 !important;
-        }
-        body * { 
-          visibility: hidden; 
-        }
-        #reportTemplate, #reportTemplate * { 
-          visibility: visible; 
-        }
-        #reportTemplate { 
-          position: static !important; 
-          width: 100%;
-          margin: 0;
-          padding: 0; 
-          box-sizing: border-box;
-        }
-        @page {
-          size: auto; 
-          margin: 15mm 12mm 50mm 12mm !important; 
-        }
-        .print-page-break {
-          display: block;
-          page-break-before: always !important;
-          break-before: always !important;
-          height: 0;
-          margin: 0;
-          border: none;
-        }
-        .print-footer-container {
-          position: fixed;
-          bottom: 10mm;
-          left: 12mm;
-          right: 12mm;
-          margin: 0 !important;
-          background: #fff;
-          break-inside: avoid !important;
-          page-break-inside: avoid !important;
-        }
+  // Create style element dynamically and append it to head so paged media styles (like @page) are parsed correctly
+  const printStyle = document.createElement("style");
+  printStyle.id = "dynamic-print-style";
+  printStyle.innerHTML = `
+    @media print {
+      html, body {
+        background: #fff;
+        margin: 0 !important;
+        padding: 0 !important;
       }
-
-      .print-wrapper {
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-        color: #1f2937;
-        line-height: 1.4;
+      body * { 
+        visibility: hidden; 
+      }
+      #reportTemplate, #reportTemplate * { 
+        visibility: visible; 
+      }
+      #reportTemplate { 
+        position: static !important; 
         width: 100%;
-      }
-
-      .print-profile-grid,
-      .print-section-block {
-        width: 100%;
-      }
-
-      .print-tattoo-card,
-      .print-photo-item,
-      .print-history-table tr {
-        page-break-inside: avoid !important;
-        break-inside: avoid !important;
-      }
-
-      .print-header {
-        text-align: center;
-        border-bottom: 3px double #1e3a8a;
-        padding-bottom: 4px;
-        margin-top: 0px; 
-        margin-bottom: 12px;
-      }
-      .print-header h1 {
-        font-size: 21px;
-        font-weight: 800;
-        text-transform: uppercase;
-        color: #1e3a8a;
         margin: 0;
-        letter-spacing: 0.5px;
+        padding: 0; 
+        box-sizing: border-box;
       }
-      .print-header h2 {
-        font-size: 14px;
-        font-weight: 600;
-        color: #4b5563;
-        margin: 2px 0 0 0;
-        letter-spacing: 1px;
+      @page {
+        size: auto; 
+        margin: 15mm 12mm 50mm 12mm !important; 
       }
-
-      .print-title-banner {
-        background-color: #f1f5f9;
-        border-left: 5px solid #1e3a8a;
-        padding: 6px 10px;
-        font-size: 13px;
-        font-weight: 700;
-        margin-bottom: 14px;
-        display: flex;
-        justify-content: space-between;
+      .print-page-break {
+        display: block;
+        page-break-before: always !important;
+        break-before: always !important;
+        height: 0;
+        margin: 0;
+        border: none;
       }
-
-      .print-profile-grid {
-        display: flex;
-        gap: 20px;
-        margin-bottom: 10px;
-        page-break-inside: avoid !important;
-        break-inside: avoid !important;
-      }
-      .print-data-table {
-        flex: 1;
-        border-collapse: collapse;
-        width: 100%;
-      }
-      .print-data-table td {
-        padding: 4px 6px;
-        font-size: 12px;
-        border-bottom: 1px solid #e2e8f0;
-        vertical-align: top;
-      }
-      .print-data-table td.label {
-        font-weight: 600;
-        color: #4b5563;
-        width: 28%;
-        text-transform: uppercase;
-        font-size: 10px;
-      }
-
-      .print-section-heading {
-        font-size: 12px;
-        font-weight: 700;
-        color: #1e3a8a;
-        border-bottom: 1px solid #1e3a8a;
-        padding-bottom: 3px;
-        margin-top: 18px;
-        margin-bottom: 10px;
-        text-transform: uppercase;
-        break-after: avoid !important;
-        page-break-after: avoid !important;
-      }
-
-      .continued-label {
-        color: #dc2626 !important;
-        font-weight: 700;
-        margin-left: 4px;
-      }
-
-      .print-comment-box {
-        font-size: 11px;
-        background: #f8fafc;
-        border: 1px solid #e2e8f0;
-        padding: 8px;
-        border-radius: 4px;
-        white-space: pre-wrap;
-      }
-
-      .print-history-table {
-        width: 100%;
-        border-collapse: collapse;
-        margin-top: 10px;
-        margin-bottom: 10px;
-      }
-      .print-history-table th {
-        background-color: #f1f5f9;
-        color: #1e3a8a;
-        font-size: 10px;
-        font-weight: 700;
-        text-transform: uppercase;
-        text-align: left;
-        padding: 6px;
-        border: 1px solid #cbd5e1;
-      }
-      .print-history-table td {
-        font-size: 11px;
-        padding: 6px;
-        border: 1px solid #cbd5e1;
-      }
-
-      .print-photos-grid {
-        display: flex;
-        gap: 12px;
-        margin-bottom: 10px;
-      }
-      .print-photo-item {
-        flex: 1;
-        border: 1px solid #e2e8f0;
-        padding: 4px;
-        border-radius: 4px;
-        text-align: center;
-        background: #f8fafc;
-      }
-      .print-photo-item img {
-        width: 100%;
-        height: 115px; 
-        object-fit: contain; 
-        background: #f1f5f9;
-        border-radius: 2px;
-      }
-      .print-photo-caption {
-        font-size: 9px;
-        font-weight: 600;
-        color: #64748b;
-        margin-top: 3px;
-        text-transform: uppercase;
-      }
-
-      .print-tattoos-grid {
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 10px;
-        margin-bottom: 14px;
-      }
-      .print-tattoo-card {
-        border: 1px solid #e2e8f0;
-        padding: 4px;
-        border-radius: 4px;
-        background: #f8fafc;
-        text-align: center;
-      }
-      .print-tattoo-card img {
-        width: 100%;
-        height: 85px;
-        object-fit: contain; 
-        background: #f1f5f9;
-        border-radius: 2px;
-      }
-      .print-tattoo-desc {
-        font-size: 9px;
-        color: #4b5563;
-        margin-top: 3px;
-        text-align: left;
-        line-height: 1.3;
-      }
-
       .print-footer-container {
-        margin-top: 30px;
+        position: fixed;
+        bottom: 10mm;
+        left: 12mm;
+        right: 12mm;
+        margin: 0 !important;
+        background: #fff;
         break-inside: avoid !important;
         page-break-inside: avoid !important;
       }
-      
-      .print-notice-box {
-        border: 2px solid #dc2626;
-        padding: 6px 10px;
-        text-align: center;
-        margin-bottom: 10px;
-      }
-      .print-notice-box p {
-        font-family: "Times New Roman", Times, serif; 
-        font-size: 11px; 
-        color: #dc2626; 
-        font-weight: 700;
-        text-transform: uppercase; 
-        margin: 0;
-        line-height: 1.3;
-        letter-spacing: 0.3px;
-      }
+    }
 
-      .print-kolbe-aim-footer {
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-        color: #4b5563;
-        font-size: 10px;
-        width: 100%;
-        border-top: 1px solid #cbd5e1;
-        padding-top: 6px;
-      }
-      .aim-title {
-        font-style: italic;
-        font-weight: 700;
-        text-decoration: underline;
-        text-align: center;
-        margin-bottom: 6px;
-        font-size: 10px;
-      }
-      .address-columns {
-        display: flex;
-        justify-content: space-between;
-        line-height: 1.4;
-      }
-      .address-col { width: 33%; }
-      .address-col.center { text-align: center; }
-      .address-col.right { text-align: right; }
-    </style>
+    .print-wrapper {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      color: #1f2937;
+      line-height: 1.4;
+      width: 100%;
+    }
 
+    .print-profile-grid,
+    .print-section-block {
+      width: 100%;
+    }
+
+    .print-tattoo-card,
+    .print-photo-item,
+    .print-history-table tr {
+      page-break-inside: avoid !important;
+      break-inside: avoid !important;
+    }
+
+    .print-header {
+      text-align: center;
+      border-bottom: 3px double #1e3a8a;
+      padding-bottom: 4px;
+      margin-top: 0px; 
+      margin-bottom: 12px;
+    }
+    .print-header h1 {
+      font-size: 21px;
+      font-weight: 800;
+      text-transform: uppercase;
+      color: #1e3a8a;
+      margin: 0;
+      letter-spacing: 0.5px;
+    }
+    .print-header h2 {
+      font-size: 14px;
+      font-weight: 600;
+      color: #4b5563;
+      margin: 2px 0 0 0;
+      letter-spacing: 1px;
+    }
+
+    .print-title-banner {
+      background-color: #f1f5f9;
+      border-left: 5px solid #1e3a8a;
+      padding: 6px 10px;
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 14px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .print-profile-grid {
+      display: flex;
+      gap: 20px;
+      margin-bottom: 10px;
+      page-break-inside: avoid !important;
+      break-inside: avoid !important;
+    }
+    .print-data-table {
+      flex: 1;
+      border-collapse: collapse;
+      width: 100%;
+    }
+    .print-data-table td {
+      padding: 4px 6px;
+      font-size: 12px;
+      border-bottom: 1px solid #e2e8f0;
+      vertical-align: top;
+    }
+    .print-data-table td.label {
+      font-weight: 600;
+      color: #4b5563;
+      width: 28%;
+      text-transform: uppercase;
+      font-size: 10px;
+    }
+
+    .print-section-heading {
+      font-size: 12px;
+      font-weight: 700;
+      color: #1e3a8a;
+      border-bottom: 1px solid #1e3a8a;
+      padding-bottom: 3px;
+      margin-top: 18px;
+      margin-bottom: 10px;
+      text-transform: uppercase;
+      break-after: avoid !important;
+      page-break-after: avoid !important;
+    }
+
+    .continued-label {
+      color: #dc2626 !important;
+      font-weight: 700;
+      margin-left: 4px;
+    }
+
+    .print-comment-box {
+      font-size: 11px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      padding: 8px;
+      border-radius: 4px;
+      white-space: pre-wrap;
+    }
+
+    .print-history-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+      margin-bottom: 10px;
+    }
+    .print-history-table th {
+      background-color: #f1f5f9;
+      color: #1e3a8a;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      text-align: left;
+      padding: 6px;
+      border: 1px solid #cbd5e1;
+    }
+    .print-history-table td {
+      font-size: 11px;
+      padding: 6px;
+      border: 1px solid #cbd5e1;
+    }
+
+    .print-photos-grid {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+    .print-photo-item {
+      flex: 1;
+      border: 1px solid #e2e8f0;
+      padding: 4px;
+      border-radius: 4px;
+      text-align: center;
+      background: #f8fafc;
+    }
+    .print-photo-item img {
+      width: 100%;
+      height: 115px; 
+      object-fit: contain; 
+      background: #f1f5f9;
+      border-radius: 2px;
+    }
+    .print-photo-caption {
+      font-size: 9px;
+      font-weight: 600;
+      color: #64748b;
+      margin-top: 3px;
+      text-transform: uppercase;
+    }
+
+    .print-tattoos-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .print-tattoo-card {
+      border: 1px solid #e2e8f0;
+      padding: 4px;
+      border-radius: 4px;
+      background: #f8fafc;
+      text-align: center;
+    }
+    .print-tattoo-card img {
+      width: 100%;
+      height: 85px;
+      object-fit: contain; 
+      background: #f1f5f9;
+      border-radius: 2px;
+    }
+    .print-tattoo-desc {
+      font-size: 9px;
+      color: #4b5563;
+      margin-top: 3px;
+      text-align: left;
+      line-height: 1.3;
+    }
+
+    .print-footer-container {
+      margin-top: 30px;
+      break-inside: avoid !important;
+      page-break-inside: avoid !important;
+    }
+    
+    .print-notice-box {
+      border: 2px solid #dc2626;
+      padding: 6px 10px;
+      text-align: center;
+      margin-bottom: 10px;
+    }
+    .print-notice-box p {
+      font-family: "Times New Roman", Times, serif; 
+      font-size: 11px; 
+      color: #dc2626; 
+      font-weight: 700;
+      text-transform: uppercase; 
+      margin: 0;
+      line-height: 1.3;
+      letter-spacing: 0.3px;
+    }
+
+    .print-kolbe-aim-footer {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      color: #4b5563;
+      font-size: 10px;
+      width: 100%;
+      border-top: 1px solid #cbd5e1;
+      padding-top: 6px;
+    }
+    .aim-title {
+      font-style: italic;
+      font-weight: 700;
+      text-decoration: underline;
+      text-align: center;
+      margin-bottom: 6px;
+      font-size: 10px;
+    }
+    .address-columns {
+      display: flex;
+      justify-content: space-between;
+      line-height: 1.4;
+    }
+    .address-col { width: 33%; }
+    .address-col.center { text-align: center; }
+    .address-col.right { text-align: right; }
+  `;
+  document.head.appendChild(printStyle);
+
+  reportTemplate.innerHTML = `
     <div class="print-wrapper">
       <header class="print-header">
         <h1>The Belize Central Prison</h1>

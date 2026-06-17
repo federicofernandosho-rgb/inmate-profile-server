@@ -1512,7 +1512,7 @@ function generatePdfReport() {
       }
       .print-footer-container {
         position: fixed;
-        bottom: 10mm;
+        bottom: -40mm;
         left: 12mm;
         right: 12mm;
         margin: 0 !important;

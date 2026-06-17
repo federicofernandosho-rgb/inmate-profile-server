@@ -1483,6 +1483,9 @@ function generatePdfReport() {
         background: #fff;
         margin: 0 !important;
         padding: 0 !important;
+        width: auto !important;
+        max-width: 100% !important;
+        min-height: 0 !important;
       }
       body * { 
         visibility: hidden; 
@@ -1492,10 +1495,18 @@ function generatePdfReport() {
       }
       #reportTemplate { 
         position: static !important; 
-        width: 100%;
+        width: 100% !important;
+        max-width: 100% !important;
         margin: 0;
         padding: 0; 
         box-sizing: border-box;
+        overflow: hidden;
+      }
+      .print-wrapper,
+      .print-body-content {
+        width: 100% !important;
+        max-width: 100% !important;
+        overflow: hidden;
       }
       @page {
         size: auto;
@@ -1542,6 +1553,8 @@ function generatePdfReport() {
       width: 100%;
       max-width: 100%;
       box-sizing: border-box;
+      padding-left: 2mm;
+      padding-right: 2mm;
     }
 
     .print-tattoo-card,
@@ -1591,11 +1604,16 @@ function generatePdfReport() {
       margin-bottom: 10px;
       page-break-inside: avoid !important;
       break-inside: avoid !important;
+      max-width: 100%;
+      overflow: hidden;
     }
     .print-data-table {
       flex: 1;
+      min-width: 0;
       border-collapse: collapse;
       width: 100%;
+      max-width: 100%;
+      table-layout: fixed;
     }
     .print-data-table td {
       padding: 4px 6px;
@@ -1640,15 +1658,16 @@ function generatePdfReport() {
       font-size: 11px;
       background: #f8fafc;
       border: 1px solid #e2e8f0;
-      padding: 8px;
+      padding: 8px 10px;
       border-radius: 4px;
       white-space: pre-wrap;
-      width: 100%;
+      width: auto;
       max-width: 100%;
       box-sizing: border-box;
-      overflow-wrap: break-word;
+      overflow-wrap: anywhere;
       word-wrap: break-word;
       word-break: break-word;
+      hyphens: auto;
     }
 
     .print-history-table {

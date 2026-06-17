@@ -1461,7 +1461,7 @@ function generatePdfReport() {
     overflowPageHtml += `
       <div class="print-page-break"></div>
       <div class="print-section-block">
-        <div class="print-section-heading">Registered Body Tattoos & Identifying Marks <span class="continued-label">(CONTINUED)</span></div>
+        <div class="print-section-heading">Registered Body Tattoos &amp; Identifying Marks</div>
         <div class="print-tattoos-grid">
     `;
     overflowBatch.forEach((tat) => {
@@ -1841,30 +1841,11 @@ function generatePdfReport() {
           <tr>
             <td style="padding: 0; border: none;">
               <div class="print-footer-container" style="margin-top: 20px;">
-                <div class="print-notice-box">
+                <div class="print-notice-box" style="position: fixed; bottom: 10mm; left: 0; right: 0; margin: 0;">
                   <p>the information contained in this file is confidential and is the sole property of the belize central prison kolbe foundation. the information is not to be used without direct approval of the ceo of prison.</p>
                 </div>
 
-                <div class="print-kolbe-aim-footer">
-                  <div class="aim-title">Kolbe's Aim - To Provide a Secure, Humane Facility that is geared towards Meaningful Rehabilitation and Successful Re-Integration</div>
-                  <div class="address-columns">
-                    <div class="address-col">
-                      P.O Box 88<br>
-                      Belize City, Belize
-                    </div>
-                    <div class="address-col center">
-                      www.kolbe.bz<br>
-                      Email: info@kolbe.bz
-                    </div>
-                    <div class="address-col right">
-                      Tel: (501)225-6190/6191<br>
-                      Fax: (501)225-6188
-                    </div>
-                  </div>
-                  <div style="text-align: center; margin-top: 8px; font-size: 8px; color: #4b5563; font-weight: bold; border-top: 1px dashed #cbd5e1; padding-top: 4px;">
-                    REPORT GENERATED: ${reportGeneratedDate}
-                  </div>
-                </div>
+
               </div>
             </td>
           </tr>

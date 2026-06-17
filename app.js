@@ -1500,7 +1500,7 @@ function generatePdfReport() {
       @page {
         size: auto;
         /* Extra bottom margin reserves space so body content never sits under the fixed footer */
-        margin: 15mm 12mm 38mm 12mm !important;
+        margin: 15mm 12mm 28mm 12mm !important;
       }
       .print-section-continued {
         page-break-before: always !important;
@@ -1508,11 +1508,13 @@ function generatePdfReport() {
       }
       .print-fixed-footer {
         position: fixed;
-        bottom: 8mm;
+        bottom: 6mm;
         left: 12mm;
         right: 12mm;
         margin: 0;
-        background: #fff;
+        padding: 0;
+        border: none;
+        background: transparent;
         z-index: 9999;
         box-sizing: border-box;
       }
@@ -1703,22 +1705,16 @@ function generatePdfReport() {
       line-height: 1.3;
     }
 
-    .print-notice-box {
-      border: 2px solid #dc2626;
-      padding: 6px 10px;
-      text-align: center;
-      margin: 0;
-      background: #fff;
-    }
-    .print-notice-box p {
-      font-family: "Times New Roman", Times, serif; 
-      font-size: 11px; 
-      color: #dc2626; 
+    .print-footer-text {
+      font-family: "Times New Roman", Times, serif;
+      font-size: 10px;
+      color: #dc2626;
       font-weight: 700;
-      text-transform: uppercase; 
+      text-transform: uppercase;
       margin: 0;
-      line-height: 1.3;
+      line-height: 1.35;
       letter-spacing: 0.3px;
+      text-align: center;
     }
 
     .print-kolbe-aim-footer {
@@ -1827,8 +1823,8 @@ function generatePdfReport() {
                 </table>
               </div>
       </div>
-      <div class="print-notice-box print-fixed-footer">
-        <p>the information contained in this file is confidential and is the sole property of the belize central prison kolbe foundation. the information is not to be used without direct approval of the ceo of prison.</p>
+      <div class="print-fixed-footer">
+        <p class="print-footer-text">the information contained in this file is confidential and is the sole property of the belize central prison kolbe foundation. the information is not to be used without direct approval of the ceo of prison.</p>
       </div>
     </div>
   `;

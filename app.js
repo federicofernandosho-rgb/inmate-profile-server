@@ -1344,6 +1344,14 @@ function exportCsv() {
 // ── SECURE PRINT AND AUTOMATED REPORT MATRIX PIPELINES ────────────────────────
 function generatePdfReport() {
   const record = records[currentIndex] || emptyRecord();
+  const reportGeneratedDate = new Date().toLocaleString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true
+  });
 
   const inmateId = fields.inmateId.value || 'N/A';
   const firstName = fields.firstName.value || '';
@@ -1480,17 +1488,15 @@ function generatePdfReport() {
           visibility: visible; 
         }
         #reportTemplate { 
-          position: absolute; 
-          left: 0; 
-          top: 0; 
+          position: static !important; 
           width: 100%;
           margin: 0;
-          padding: 15mm 12mm 15mm 12mm; 
+          padding: 0; 
           box-sizing: border-box;
         }
         @page {
           size: auto; 
-          margin: 0 !important; 
+          margin: 15mm 12mm 50mm 12mm !important; 
         }
         .print-page-break {
           display: block;
@@ -1499,6 +1505,16 @@ function generatePdfReport() {
           height: 0;
           margin: 0;
           border: none;
+        }
+        .print-footer-container {
+          position: fixed;
+          bottom: 10mm;
+          left: 12mm;
+          right: 12mm;
+          margin: 0 !important;
+          background: #fff;
+          break-inside: avoid !important;
+          page-break-inside: avoid !important;
         }
       }
 
@@ -1833,6 +1849,9 @@ function generatePdfReport() {
               Tel: (501)225-6190/6191<br>
               Fax: (501)225-6188
             </div>
+          </div>
+          <div style="text-align: center; margin-top: 8px; font-size: 8px; color: #4b5563; font-weight: bold; border-top: 1px dashed #cbd5e1; padding-top: 4px;">
+            REPORT GENERATED: ${reportGeneratedDate}
           </div>
         </div>
       </div>

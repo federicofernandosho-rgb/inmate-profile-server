@@ -1459,9 +1459,8 @@ function generatePdfReport() {
   let overflowPageHtml = '';
   if (overflowBatch.length > 0) {
     overflowPageHtml += `
-      <div class="print-page-break"></div>
-      <div class="print-section-block">
-        <div class="print-section-heading">Registered Body Tattoos &amp; Identifying Marks</div>
+      <div class="print-section-block print-section-continued">
+        <div class="print-section-heading">Registered Body Tattoos &amp; Identifying Marks <span class="continued-label">(CONTINUED)</span></div>
         <div class="print-tattoos-grid">
     `;
     overflowBatch.forEach((tat) => {
@@ -1499,22 +1498,23 @@ function generatePdfReport() {
         box-sizing: border-box;
       }
       @page {
-        size: auto; 
-        margin: 15mm 12mm 15mm 12mm !important; 
+        size: auto;
+        /* Extra bottom margin reserves space so body content never sits under the fixed footer */
+        margin: 15mm 12mm 38mm 12mm !important;
       }
-      .print-page-break {
-        display: block;
+      .print-section-continued {
         page-break-before: always !important;
-        break-before: always !important;
-        height: 0;
-        margin: 0;
-        border: none;
+        break-before: page !important;
       }
-      .print-footer-container {
-        margin: 0 !important;
+      .print-fixed-footer {
+        position: fixed;
+        bottom: 8mm;
+        left: 12mm;
+        right: 12mm;
+        margin: 0;
         background: #fff;
-        break-inside: avoid !important;
-        page-break-inside: avoid !important;
+        z-index: 9999;
+        box-sizing: border-box;
       }
     }
 
@@ -1703,17 +1703,12 @@ function generatePdfReport() {
       line-height: 1.3;
     }
 
-    .print-footer-container {
-      margin-top: 30px;
-      break-inside: avoid !important;
-      page-break-inside: avoid !important;
-    }
-    
     .print-notice-box {
       border: 2px solid #dc2626;
       padding: 6px 10px;
       text-align: center;
-      margin-bottom: 10px;
+      margin: 0;
+      background: #fff;
     }
     .print-notice-box p {
       font-family: "Times New Roman", Times, serif; 
@@ -1755,10 +1750,7 @@ function generatePdfReport() {
 
   reportTemplate.innerHTML = `
     <div class="print-wrapper">
-      <table style="width: 100%; border-collapse: collapse; border: none; margin: 0; padding: 0;">
-        <tbody>
-          <tr>
-            <td style="padding: 0; border: none;">
+      <div class="print-body-content">
               <header class="print-header">
                 <h1>The Belize Central Prison</h1>
                 <h2>Kolbe Foundation</h2>
@@ -1834,23 +1826,10 @@ function generatePdfReport() {
                   </tbody>
                 </table>
               </div>
-            </td>
-          </tr>
-        </tbody>
-        <tfoot>
-          <tr>
-            <td style="padding: 0; border: none;">
-              <div class="print-footer-container" style="margin-top: 20px;">
-                <div class="print-notice-box" style="position: fixed; bottom: 10mm; left: 0; right: 0; margin: 0;">
-                  <p>the information contained in this file is confidential and is the sole property of the belize central prison kolbe foundation. the information is not to be used without direct approval of the ceo of prison.</p>
-                </div>
-
-
-              </div>
-            </td>
-          </tr>
-        </tfoot>
-      </table>
+      </div>
+      <div class="print-notice-box print-fixed-footer">
+        <p>the information contained in this file is confidential and is the sole property of the belize central prison kolbe foundation. the information is not to be used without direct approval of the ceo of prison.</p>
+      </div>
     </div>
   `;
 

@@ -1178,7 +1178,7 @@ function renderTattoos(tattoos) {
 
     card.innerHTML = `
       <img src="${tat.src}" alt="Tattoo file" style="width:100%; height:80px; object-fit:cover; border-radius:2px; cursor:pointer;">
-      <div style="font-size:10px; color:var(--text-muted); text-overflow:ellipsis; overflow:hidden; white-space:nowrap; margin-top:4px;">${escapeHtml(tat.description)}</div>
+      <div class="tattoo-desc" style="font-size:10px; text-overflow:ellipsis; overflow:hidden; white-space:nowrap; margin-top:4px;">${escapeHtml(tat.description)}</div>
       <button type="button" class="danger-button" style="position:absolute; top:2px; right:2px; padding:2px 6px; font-size:9px; line-height:1;" ${canEdit() ? "" : "disabled"}>&times;</button>
     `;
 
@@ -1500,7 +1500,7 @@ function generatePdfReport() {
       }
       @page {
         size: auto; 
-        margin: 15mm 12mm 50mm 12mm !important; 
+        margin: 15mm 12mm 15mm 12mm !important; 
       }
       .print-page-break {
         display: block;
@@ -1511,10 +1511,6 @@ function generatePdfReport() {
         border: none;
       }
       .print-footer-container {
-        position: fixed;
-        bottom: -40mm;
-        left: 12mm;
-        right: 12mm;
         margin: 0 !important;
         background: #fff;
         break-inside: avoid !important;
@@ -1759,108 +1755,121 @@ function generatePdfReport() {
 
   reportTemplate.innerHTML = `
     <div class="print-wrapper">
-      <header class="print-header">
-        <h1>The Belize Central Prison</h1>
-        <h2>Kolbe Foundation</h2>
-      </header>
-
-      <div class="print-title-banner">
-        <span>INMATE INTELLIGENCE RECORD</span>
-        <span style="color:${statusText === 'IN PRISON' ? '#b91c1c' : '#4b5563'}">${statusText}</span>
-      </div>
-
-      <div class="print-profile-grid">
-        <div class="print-mugshot-panel">
-          ${standardMugshotHtml}
-        </div>
-        
-        <table class="print-data-table">
+      <table style="width: 100%; border-collapse: collapse; border: none; margin: 0; padding: 0;">
+        <tbody>
           <tr>
-            <td class="label">Inmate ID</td>
-            <td style="font-weight: 700; font-size: 13px;">${inmateId}</td>
-          </tr>
-          <tr>
-            <td class="label">Full Name</td>
-            <td>${firstName} ${middleName} ${lastName}</td>
-          </tr>
-          <tr>
-            <td class="label">Alias / AKA</td>
-            <td>${alias}</td>
-          </tr>
-          <tr>
-            <td class="label">Date of Birth</td>
-            <td>${dobMedium}</td>
-          </tr>
-          <tr>
-            <td class="label">Age</td>
-            <td>${age}</td>
-          </tr>
-          <tr>
-            <td class="label">Affiliation</td>
-            <td>${affiliation}</td>
-          </tr>
-          <tr>
-            <td class="label">Last Known Address</td>
-            <td>${address}</td>
-          </tr>
-        </table>
-      </div>
+            <td style="padding: 0; border: none;">
+              <header class="print-header">
+                <h1>The Belize Central Prison</h1>
+                <h2>Kolbe Foundation</h2>
+              </header>
 
-      <div class="print-section-block">
-        <div class="print-section-heading">Intelligence Case Commentary & Remarks</div>
-        <div class="print-comment-box">${comment}</div>
-      </div>
+              <div class="print-title-banner">
+                <span>INMATE INTELLIGENCE RECORD</span>
+                <span style="color:${statusText === 'IN PRISON' ? '#b91c1c' : '#4b5563'}">${statusText}</span>
+              </div>
 
-      ${facialViewsHtml}
-      
-      ${primaryTattoosHtml}
+              <div class="print-profile-grid">
+                <div class="print-mugshot-panel">
+                  ${standardMugshotHtml}
+                </div>
+                
+                <table class="print-data-table">
+                  <tr>
+                    <td class="label">Inmate ID</td>
+                    <td style="font-weight: 700; font-size: 13px;">${inmateId}</td>
+                  </tr>
+                  <tr>
+                    <td class="label">Full Name</td>
+                    <td>${firstName} ${middleName} ${lastName}</td>
+                  </tr>
+                  <tr>
+                    <td class="label">Alias / AKA</td>
+                    <td>${alias}</td>
+                  </tr>
+                  <tr>
+                    <td class="label">Date of Birth</td>
+                    <td>${dobMedium}</td>
+                  </tr>
+                  <tr>
+                    <td class="label">Age</td>
+                    <td>${age}</td>
+                  </tr>
+                  <tr>
+                    <td class="label">Affiliation</td>
+                    <td>${affiliation}</td>
+                  </tr>
+                  <tr>
+                    <td class="label">Last Known Address</td>
+                    <td>${address}</td>
+                  </tr>
+                </table>
+              </div>
 
-      ${overflowPageHtml}
+              <div class="print-section-block">
+                <div class="print-section-heading">Intelligence Case Commentary & Remarks</div>
+                <div class="print-comment-box">${comment}</div>
+              </div>
 
-      <div class="print-section-block">
-        <div class="print-section-heading">Status & Institutional Date History</div>
-        <table class="print-history-table">
-          <thead>
-            <tr>
-              <th>Current Status</th>
-              <th>Date of Admission / Discharge</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td style="font-weight: 600; color: ${statusText === 'IN PRISON' ? '#b91c1c' : '#1e3a8a'}">${statusText}</td>
-              <td>${historicDateFormatted}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+              ${facialViewsHtml}
+              
+              ${primaryTattoosHtml}
 
-      <div class="print-footer-container">
-        <div class="print-notice-box">
-          <p>the information contained in this file is confidential and is the sole property of the belize central prison kolbe foundation. the information is not to be used without direct approval of the ceo of prison.</p>
-        </div>
+              ${overflowPageHtml}
 
-        <div class="print-kolbe-aim-footer">
-          <div class="aim-title">Kolbe's Aim - To Provide a Secure, Humane Facility that is geared towards Meaningful Rehabilitation and Successful Re-Integration</div>
-          <div class="address-columns">
-            <div class="address-col">
-              P.O Box 88<br>
-              Belize City, Belize
-            </div>
-            <div class="address-col center">
-              www.kolbe.bz<br>
-              Email: info@kolbe.bz
-            </div>
-            <div class="address-col right">
-              Tel: (501)225-6190/6191<br>
-              Fax: (501)225-6188
-            </div>
-          </div>
-          <div style="text-align: center; margin-top: 8px; font-size: 8px; color: #4b5563; font-weight: bold; border-top: 1px dashed #cbd5e1; padding-top: 4px;">
-            REPORT GENERATED: ${reportGeneratedDate}
-          </div>
-        </div>
-      </div>
+              <div class="print-section-block">
+                <div class="print-section-heading">Status & Institutional Date History</div>
+                <table class="print-history-table">
+                  <thead>
+                    <tr>
+                      <th>Current Status</th>
+                      <th>Date of Admission / Discharge</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td style="font-weight: 600; color: ${statusText === 'IN PRISON' ? '#b91c1c' : '#1e3a8a'}">${statusText}</td>
+                      <td>${historicDateFormatted}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+        <tfoot>
+          <tr>
+            <td style="padding: 0; border: none;">
+              <div class="print-footer-container" style="margin-top: 20px;">
+                <div class="print-notice-box">
+                  <p>the information contained in this file is confidential and is the sole property of the belize central prison kolbe foundation. the information is not to be used without direct approval of the ceo of prison.</p>
+                </div>
+
+                <div class="print-kolbe-aim-footer">
+                  <div class="aim-title">Kolbe's Aim - To Provide a Secure, Humane Facility that is geared towards Meaningful Rehabilitation and Successful Re-Integration</div>
+                  <div class="address-columns">
+                    <div class="address-col">
+                      P.O Box 88<br>
+                      Belize City, Belize
+                    </div>
+                    <div class="address-col center">
+                      www.kolbe.bz<br>
+                      Email: info@kolbe.bz
+                    </div>
+                    <div class="address-col right">
+                      Tel: (501)225-6190/6191<br>
+                      Fax: (501)225-6188
+                    </div>
+                  </div>
+                  <div style="text-align: center; margin-top: 8px; font-size: 8px; color: #4b5563; font-weight: bold; border-top: 1px dashed #cbd5e1; padding-top: 4px;">
+                    REPORT GENERATED: ${reportGeneratedDate}
+                  </div>
+                </div>
+              </div>
+            </td>
+          </tr>
+        </tfoot>
+      </table>
     </div>
   `;
 

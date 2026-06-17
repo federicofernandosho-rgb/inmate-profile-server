@@ -1525,11 +1525,23 @@ function generatePdfReport() {
       color: #1f2937;
       line-height: 1.4;
       width: 100%;
+      max-width: 100%;
+      box-sizing: border-box;
+      overflow-wrap: break-word;
+      word-wrap: break-word;
+    }
+
+    .print-body-content {
+      width: 100%;
+      max-width: 100%;
+      box-sizing: border-box;
     }
 
     .print-profile-grid,
     .print-section-block {
       width: 100%;
+      max-width: 100%;
+      box-sizing: border-box;
     }
 
     .print-tattoo-card,
@@ -1590,6 +1602,9 @@ function generatePdfReport() {
       font-size: 12px;
       border-bottom: 1px solid #e2e8f0;
       vertical-align: top;
+      overflow-wrap: break-word;
+      word-wrap: break-word;
+      word-break: break-word;
     }
     .print-data-table td.label {
       font-weight: 600;
@@ -1610,6 +1625,9 @@ function generatePdfReport() {
       text-transform: uppercase;
       break-after: avoid !important;
       page-break-after: avoid !important;
+      overflow-wrap: break-word;
+      word-wrap: break-word;
+      word-break: break-word;
     }
 
     .continued-label {
@@ -1625,6 +1643,12 @@ function generatePdfReport() {
       padding: 8px;
       border-radius: 4px;
       white-space: pre-wrap;
+      width: 100%;
+      max-width: 100%;
+      box-sizing: border-box;
+      overflow-wrap: break-word;
+      word-wrap: break-word;
+      word-break: break-word;
     }
 
     .print-history-table {

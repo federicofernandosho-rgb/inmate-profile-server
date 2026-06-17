@@ -1499,8 +1499,8 @@ function generatePdfReport() {
       }
       @page {
         size: auto;
-        /* Extra bottom margin reserves space so body content never sits under the fixed footer */
-        margin: 15mm 12mm 28mm 12mm !important;
+        /* Minimal bottom margin: keeps content above the footer text row */
+        margin: 15mm 10mm 12mm 10mm !important;
       }
       .print-section-continued {
         page-break-before: always !important;
@@ -1508,9 +1508,9 @@ function generatePdfReport() {
       }
       .print-fixed-footer {
         position: fixed;
-        bottom: 6mm;
-        left: 12mm;
-        right: 12mm;
+        bottom: 0;
+        left: 10mm;
+        right: 10mm;
         margin: 0;
         padding: 0;
         border: none;
@@ -1707,13 +1707,13 @@ function generatePdfReport() {
 
     .print-footer-text {
       font-family: "Times New Roman", Times, serif;
-      font-size: 10px;
+      font-size: 9px;
       color: #dc2626;
       font-weight: 700;
       text-transform: uppercase;
       margin: 0;
-      line-height: 1.35;
-      letter-spacing: 0.3px;
+      line-height: 1.2;
+      letter-spacing: 0.2px;
       text-align: center;
     }
 

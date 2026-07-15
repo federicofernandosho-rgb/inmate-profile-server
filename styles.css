@@ -1653,14 +1653,14 @@ body.dark-mode .audit-detail {
 @media print {
   @page {
     size: letter;
-    margin: 0.75in !important;
+    margin: 0 !important;
   }
 
   html,
   body {
     background: #ffffff !important;
     width: 100% !important;
-    margin: 0 !important;
+    margin: 0.75in !important;
     padding: 0 !important;
   }
 

@@ -1618,7 +1618,7 @@ function generatePdfReport() {
     @media print {
       html, body {
         background: #fff;
-        margin: 0.75in !important;
+        margin: 0 !important;
         padding: 0 !important;
         width: auto !important;
         max-width: 100% !important;
@@ -1647,7 +1647,7 @@ function generatePdfReport() {
       }
       @page {
         size: letter;
-        margin: 0 !important;
+        margin: 0.5in !important;
       }
       .print-section-continued {
         page-break-before: always !important;
@@ -1655,9 +1655,9 @@ function generatePdfReport() {
       }
       .print-fixed-footer {
         position: fixed;
-        bottom: 0.75in;
-        left: 0.75in;
-        right: 0.75in;
+        bottom: 0;
+        left: 10mm;
+        right: 10mm;
         margin: 0;
         padding: 0;
         border: none;

@@ -344,7 +344,8 @@ async function getUsers() {
   return rows.map(row => ({
     ...row,
     id: String(row.id),
-    createdAt: toIso(row.createdAt)
+    createdAt: toIso(row.createdAt),
+    disabled: row.disabled ?? false
   }));
 }
 
@@ -385,6 +386,50 @@ async function updateUserRole(userId, role) {
   }
 
   await dbPool.execute("UPDATE users SET role = ? WHERE id = ?", [role, userId]);
+}
+
+// Delete a user
+async function deleteUser(userId) {
+  if (!dbPool) {
+    const users = await readJson(USERS_FILE, []);
+    const index = users.findIndex(u => String(u.id) === String(userId));
+    if (index === -1) return false;
+    users.splice(index, 1);
+    await writeJson(USERS_FILE, users);
+    return true;
+  }
+  // MySQL implementation (assuming a 'disabled' column exists)
+  const [result] = await dbPool.execute("DELETE FROM users WHERE id = ?", [userId]);
+  return result.affectedRows > 0;
+}
+
+// Update user password
+async function updateUserPassword(userId, newPassword) {
+  const hashed = hashPassword(newPassword);
+  if (!dbPool) {
+    const users = await readJson(USERS_FILE, []);
+    const user = users.find(u => String(u.id) === String(userId));
+    if (!user) return false;
+    user.password = hashed;
+    await writeJson(USERS_FILE, users);
+    return true;
+  }
+  const [result] = await dbPool.execute("UPDATE users SET password_hash = ? WHERE id = ?", [hashed, userId]);
+  return result.affectedRows > 0;
+}
+
+// Enable/disable user account
+async function setUserDisabled(userId, disabled) {
+  if (!dbPool) {
+    const users = await readJson(USERS_FILE, []);
+    const user = users.find(u => String(u.id) === String(userId));
+    if (!user) return false;
+    user.disabled = disabled;
+    await writeJson(USERS_FILE, users);
+    return true;
+  }
+  const [result] = await dbPool.execute("UPDATE users SET disabled = ? WHERE id = ?", [disabled ? 1 : 0, userId]);
+  return result.affectedRows > 0;
 }
 
 function parseJsonSafe(str) {
@@ -589,6 +634,7 @@ async function createUser(username, password, role) {
     username,
     role,
     password: hashPassword(password),
+    disabled: false,
     createdAt: new Date().toISOString()
   };
 }

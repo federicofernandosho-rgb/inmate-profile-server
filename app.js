@@ -1646,9 +1646,8 @@ function generatePdfReport() {
         overflow: hidden;
       }
       @page {
-        size: auto;
-        /* Minimal bottom margin: keeps content above the footer text row */
-        margin: 15mm 10mm 12mm 10mm !important;
+        size: letter;
+        margin: 0.75in !important;
       }
       .print-section-continued {
         page-break-before: always !important;

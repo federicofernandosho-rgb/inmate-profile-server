@@ -92,6 +92,12 @@ let currentZoomLevel = 1;
 const ZOOM_STEP = 0.2;
 const MAX_ZOOM = 3;
 const MIN_ZOOM = 0.5;
+let panX = 0;
+let panY = 0;
+let isPanning = false;
+let startX = 0;
+let startY = 0;
+let wheelTimeout;
 
 // Initialize Core Operational Hooks & Event Listeners
 loginForm.addEventListener("submit", handleLogin);
@@ -226,6 +232,78 @@ document.querySelector("#zoomResetBtn").addEventListener("click", resetTattooZoo
 document.querySelector("#tattooModal").addEventListener("click", (e) => {
   if (e.target.id === "tattooModal") closeTattooModal();
 });
+
+const tattooWrapper = document.querySelector(".tattoo-modal-img-wrapper");
+const tattooImg = document.getElementById("tattooModalImg");
+
+if (tattooWrapper && tattooImg) {
+  tattooWrapper.addEventListener("mousedown", (e) => {
+    e.preventDefault();
+    isPanning = true;
+    tattooWrapper.classList.add("panning");
+    tattooImg.style.transition = "none";
+    startX = e.clientX - panX;
+    startY = e.clientY - panY;
+  });
+
+  window.addEventListener("mousemove", (e) => {
+    if (!isPanning) return;
+    panX = e.clientX - startX;
+    panY = e.clientY - startY;
+    updateTattooTransform();
+  });
+
+  window.addEventListener("mouseup", () => {
+    if (isPanning) {
+      isPanning = false;
+      tattooWrapper.classList.remove("panning");
+      tattooImg.style.transition = "transform 0.15s ease";
+    }
+  });
+
+  tattooWrapper.addEventListener("wheel", (e) => {
+    e.preventDefault();
+    tattooImg.style.transition = "none";
+    const zoomFactor = 0.1;
+    if (e.deltaY < 0) {
+      if (currentZoomLevel < MAX_ZOOM) {
+        currentZoomLevel = Math.min(MAX_ZOOM, currentZoomLevel + zoomFactor);
+      }
+    } else {
+      if (currentZoomLevel > MIN_ZOOM) {
+        currentZoomLevel = Math.max(MIN_ZOOM, currentZoomLevel - zoomFactor);
+      }
+    }
+    updateTattooTransform();
+    clearTimeout(wheelTimeout);
+    wheelTimeout = setTimeout(() => {
+      tattooImg.style.transition = "transform 0.15s ease";
+    }, 150);
+  });
+
+  tattooWrapper.addEventListener("touchstart", (e) => {
+    if (e.touches.length === 1) {
+      isPanning = true;
+      tattooImg.style.transition = "none";
+      startX = e.touches[0].clientX - panX;
+      startY = e.touches[0].clientY - panY;
+    }
+  }, { passive: true });
+
+  window.addEventListener("touchmove", (e) => {
+    if (!isPanning || e.touches.length !== 1) return;
+    panX = e.touches[0].clientX - startX;
+    panY = e.touches[0].clientY - startY;
+    updateTattooTransform();
+  }, { passive: true });
+
+  window.addEventListener("touchend", () => {
+    if (isPanning) {
+      isPanning = false;
+      tattooImg.style.transition = "transform 0.15s ease";
+    }
+  });
+}
 
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape") {
@@ -1260,17 +1338,29 @@ function closeTattooModal() {
 
 function zoomTattoo(direction) {
   const img = document.getElementById("tattooModalImg");
+  img.style.transition = "transform 0.15s ease";
   if (direction === "in" && currentZoomLevel < MAX_ZOOM) {
     currentZoomLevel += ZOOM_STEP;
   } else if (direction === "out" && currentZoomLevel > MIN_ZOOM) {
     currentZoomLevel -= ZOOM_STEP;
   }
-  img.style.transform = `scale(${currentZoomLevel})`;
+  updateTattooTransform();
 }
 
 function resetTattooZoom() {
   currentZoomLevel = 1;
-  document.getElementById("tattooModalImg").style.transform = "scale(1)";
+  panX = 0;
+  panY = 0;
+  const img = document.getElementById("tattooModalImg");
+  img.style.transition = "transform 0.15s ease";
+  updateTattooTransform();
+}
+
+function updateTattooTransform() {
+  const img = document.getElementById("tattooModalImg");
+  if (img) {
+    img.style.transform = `translate(${panX}px, ${panY}px) scale(${currentZoomLevel})`;
+  }
 }
 
 // ── SYSTEM AUDIT LOG MODULES ──────────────────────────────────────────────────

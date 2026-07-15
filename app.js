@@ -1929,6 +1929,9 @@ function generatePdfReport() {
               <header class="print-header">
                 <h1>The Belize Central Prison</h1>
                 <h2>Kolbe Foundation</h2>
+                <p style="margin: 4px 0 0; font-size: 11px; color: #4b5563; font-weight: 400;">
+                  Generated: ${reportGeneratedDate} &nbsp;&bull;&nbsp; By: ${currentUser?.username || 'Unknown'}
+                </p>
               </header>
 
               <div class="print-title-banner">

@@ -211,30 +211,66 @@ async function handleApi(req, res, url) {
     return;
   }
 
-  const userRoleMatch = url.pathname.match(/^\/api\/users\/([^/]+)\/role$/);
-  if (req.method === "PATCH" && userRoleMatch) {
+  const userDeleteMatch = url.pathname.match(/^\/api\/users\/([^/]+)$/);
+  if (req.method === "DELETE" && userDeleteMatch) {
     if (!canManageUsers(currentUser)) {
       sendJson(res, 403, { error: "Admin access required" });
       return;
     }
-
-    const body = await readBody(req);
-    const userId = userRoleMatch[1];
+    const userId = userDeleteMatch[1];
     const users = await getUsers();
-    const targetUser = users.find(user => String(user.id) === userId);
-
+    const targetUser = users.find(u => String(u.id) === userId);
     if (!targetUser) {
       sendJson(res, 404, { error: "User not found" });
       return;
     }
-
-    const adminCount = users.filter(user => user.role === "admin").length;
-    if (targetUser.role === "admin" && normalizeRole(body.role) !== "admin" && adminCount <= 1) {
+    const adminCount = users.filter(u => u.role === "admin").length;
+    if (targetUser.role === "admin" && adminCount <= 1) {
       sendJson(res, 400, { error: "At least one admin user is required" });
       return;
     }
+    await deleteUser(userId);
+    const updatedUsers = await getUsers();
+    sendJson(res, 200, { users: updatedUsers.map(publicUser) });
+    return;
+  }
 
-    await updateUserRole(userId, normalizeRole(body.role));
+  const userPasswordMatch = url.pathname.match(/^\/api\/users\/([^/]+)\/password$/);
+  if (req.method === "PATCH" && userPasswordMatch) {
+    if (!canManageUsers(currentUser)) {
+      sendJson(res, 403, { error: "Admin access required" });
+      return;
+    }
+    const userId = userPasswordMatch[1];
+    const body = await readBody(req);
+    if (!body.password || body.password.length < 4) {
+      sendJson(res, 400, { error: "Password must be at least 4 characters" });
+      return;
+    }
+    const success = await updateUserPassword(userId, body.password);
+    if (!success) {
+      sendJson(res, 404, { error: "User not found" });
+      return;
+    }
+    const updatedUsers = await getUsers();
+    sendJson(res, 200, { users: updatedUsers.map(publicUser) });
+    return;
+  }
+
+  const userDisableMatch = url.pathname.match(/^\/api\/users\/([^/]+)\/disable$/);
+  if (req.method === "PATCH" && userDisableMatch) {
+    if (!canManageUsers(currentUser)) {
+      sendJson(res, 403, { error: "Admin access required" });
+      return;
+    }
+    const userId = userDisableMatch[1];
+    const body = await readBody(req);
+    const disabled = !!body.disabled;
+    const success = await setUserDisabled(userId, disabled);
+    if (!success) {
+      sendJson(res, 404, { error: "User not found" });
+      return;
+    }
     const updatedUsers = await getUsers();
     sendJson(res, 200, { users: updatedUsers.map(publicUser) });
     return;
@@ -708,12 +744,13 @@ function base64Url(value) {
 }
 
 function publicUser(user) {
-  return {
-    id: user.id,
-    username: user.username,
-    role: user.role,
-    createdAt: user.createdAt
-  };
+    return {
+      id: user.id,
+      username: user.username,
+      role: user.role,
+      disabled: user.disabled,
+      createdAt: user.createdAt
+    };
 }
 
 function emptyImages() {

@@ -432,38 +432,85 @@ async function renderUserList() {
     row.className = "user-row";
     const disabled = user.id === currentUser.id && user.role === "admin" ? "disabled" : "";
     row.innerHTML = `
-      <strong>${escapeHtml(user.username)}</strong>
-      <label class="role-editor">
-        <span>Role</span>
-        <select data-user-role="${escapeHtml(user.id)}" ${disabled}>
-          <option value="admin" ${user.role === "admin" ? "selected" : ""}>Super Admin</option>
-          <option value="entry" ${user.role === "entry" ? "selected" : ""}>Data Entry</option>
-          <option value="readonly" ${user.role === "readonly" ? "selected" : ""}>Read Only</option>
-        </select>
-      </label>
-    `;
+        <strong>${escapeHtml(user.username)}</strong>
+        <label class="role-editor">
+          <span>Role</span>
+          <select data-user-role="${escapeHtml(user.id)}" ${disabled}>
+            <option value="admin" ${user.role === "admin" ? "selected" : ""}>Super Admin</option>
+            <option value="entry" ${user.role === "entry" ? "selected" : ""}>Data Entry</option>
+            <option value="readonly" ${user.role === "readonly" ? "selected" : ""}>Read Only</option>
+          </select>
+        </label>
+        <label class="disabled-toggle" title="Toggle account active status">
+          <input type="checkbox" data-user-disabled="${escapeHtml(user.id)}" ${user.disabled ? "checked" : ""} ${disabled}>
+          Disabled
+        </label>
+        <button class="change-pw" data-user-pw="${escapeHtml(user.id)}" ${disabled}>Change Password</button>
+        <button class="delete-user" data-user-delete="${escapeHtml(user.id)}" ${disabled}>Delete</button>
+      `;
     userList.append(row);
   });
+
 
   userList.querySelectorAll("[data-user-role]").forEach(select => {
     select.addEventListener("change", () => updateUserRole(select.dataset.userRole, select.value));
   });
+
+  // Delete user
+  userList.querySelectorAll("[data-user-delete]").forEach(btn => {
+    btn.addEventListener("click", () => deleteUser(btn.dataset.userDelete));
+  });
+
+  // Change password
+  userList.querySelectorAll("[data-user-pw]").forEach(btn => {
+    btn.addEventListener("click", () => changeUserPassword(btn.dataset.userPw));
+  });
+
+  // Toggle disabled
+  userList.querySelectorAll("[data-user-disabled]").forEach(checkbox => {
+    checkbox.addEventListener("change", () => toggleUserDisabled(checkbox.dataset.userDisabled, checkbox.checked));
+  });
 }
 
-async function updateUserRole(userId, role) {
-  if (!canManageUsers()) return;
-  userMessage.textContent = "";
 
+async function deleteUser(userId) {
+  if (!canManageUsers()) return;
   try {
-    await apiFetch(`/api/users/${encodeURIComponent(userId)}/role`, {
-      method: "PATCH",
-      body: { role }
-    });
-    userMessage.textContent = "User role updated.";
+    await apiFetch(`/api/users/${encodeURIComponent(userId)}`, { method: "DELETE" });
+    userMessage.textContent = "User deleted.";
     await renderUserList();
   } catch (error) {
     userMessage.textContent = error.message;
+  }
+}
+
+async function changeUserPassword(userId) {
+  if (!canManageUsers()) return;
+  const newPassword = prompt("Enter new password for the user:");
+  if (!newPassword) return;
+  try {
+    await apiFetch(`/api/users/${encodeURIComponent(userId)}/password`, {
+      method: "PATCH",
+      body: { password: newPassword }
+    });
+    userMessage.textContent = "Password updated.";
     await renderUserList();
+  } catch (error) {
+    userMessage.textContent = error.message;
+  }
+}
+
+async function toggleUserDisabled(userId, disabled) {
+  if (!canManageUsers()) return;
+  try {
+    await apiFetch(`/api/users/${encodeURIComponent(userId)}/disable`, {
+      method: "PATCH",
+      body: { disabled }
+    });
+    userMessage.textContent = "User status updated.";
+    await renderUserList();
+  } catch (error) {
+    userMessage.textContent = error.message;
   }
 }
 

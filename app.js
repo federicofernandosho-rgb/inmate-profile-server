@@ -1422,24 +1422,44 @@ function renderMainHistoryTimeline(historyArray) {
     return;
   }
 
+  let tableHtml = `
+    <table class="history-table" style="width: 100%; border-collapse: collapse; font-size: 12px; text-align: left;">
+      <thead>
+        <tr style="background: var(--bg-main); border-bottom: 2px solid var(--border-color);">
+          <th style="padding: 8px;">Date Admition/ Discharge</th>
+          <th style="padding: 8px;">Status</th>
+          <th style="padding: 8px;">Offence</th>
+          <th style="padding: 8px;">Prison Status</th>
+          <th style="padding: 8px;">User</th>
+          <th style="padding: 8px;">Date Edited</th>
+        </tr>
+      </thead>
+      <tbody>
+  `;
+
   historyArray.slice().reverse().forEach(evt => {
-    const el = document.createElement("div");
-    el.className = "timeline-event";
-    el.style.cssText = "padding:8px; border-left:3px solid var(--primary); margin-left:8px; padding-left:12px; background:var(--bg-main); border-radius:0 4px 4px 0; font-size:12px; display:flex; flex-direction:column; gap:2px;";
-
     const localTime = new Date(evt.timestamp).toLocaleString();
-    let detailHtml = `<div><strong>${evt.type}</strong> on <u>${evt.date}</u></div>`;
-    if (evt.charge) {
-      detailHtml += `<div style='color:var(--text-muted); font-size:11px;'>Context Case Charge: ${escapeHtml(evt.charge)}</div>`;
-    }
-    if (evt.dischargeStatus) {
-      detailHtml += `<div style='color:var(--text-muted); font-size:11px;'>Discharge Category Status: ${escapeHtml(evt.dischargeStatus)}</div>`;
-    }
-    detailHtml += `<div style='font-size:10px; color:var(--text-muted); margin-top:2px;'>Logged by ${escapeHtml(evt.username)} (${localTime})</div>`;
-
-    el.innerHTML = detailHtml;
-    mainHistoryTimeline.appendChild(el);
+    const charge = evt.charge ? escapeHtml(evt.charge) : "-";
+    const dischargeStatus = evt.dischargeStatus ? escapeHtml(evt.dischargeStatus) : "-";
+    
+    tableHtml += `
+      <tr style="border-bottom: 1px solid var(--border-color);">
+        <td style="padding: 8px;">${evt.date}</td>
+        <td style="padding: 8px;"><strong style="color:var(--primary);">${evt.type}</strong></td>
+        <td style="padding: 8px; color:var(--text-muted);">${charge}</td>
+        <td style="padding: 8px; color:var(--text-muted);">${dischargeStatus}</td>
+        <td style="padding: 8px;">${escapeHtml(evt.username)}</td>
+        <td style="padding: 8px; color: var(--text-muted); font-size: 10px;">${localTime}</td>
+      </tr>
+    `;
   });
+
+  tableHtml += `
+      </tbody>
+    </table>
+  `;
+
+  mainHistoryTimeline.innerHTML = tableHtml;
 }
 
 // ── EXPLOITATION SYSTEM EXPORTS (CSV) ──────────────────────────────────────────

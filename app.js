@@ -895,7 +895,6 @@ function applyFiltersToRecords() {
     if (activeFilters.status === "in" && !r.inPrison) return false;
     if (activeFilters.status === "out" && r.inPrison) return false;
     if (activeFilters.affiliation && !String(r.affiliation || "").toLowerCase().includes(activeFilters.affiliation.toLowerCase())) return false;
-    if (activeFilters.gang && !String(r.gangAffiliation || "").toLowerCase().includes(activeFilters.gang.toLowerCase())) return false;
     if (activeFilters.dateFrom) {
       const d = r.admissionDate || r.dischargeDate || "";
       if (!d || d < activeFilters.dateFrom) return false;
@@ -911,7 +910,6 @@ function applyFiltersToRecords() {
 function applyRecordFilters() {
   activeFilters.status = document.querySelector("#filterStatus").value;
   activeFilters.affiliation = document.querySelector("#filterAffiliation").value.trim();
-  activeFilters.gang = document.querySelector("#filterGang").value.trim();
   activeFilters.dateFrom = document.querySelector("#filterDateFrom").value;
   activeFilters.dateTo = document.querySelector("#filterDateTo").value;
   applyFiltersToRecords();
@@ -922,10 +920,9 @@ function applyRecordFilters() {
 }
 
 function clearRecordFilters() {
-  activeFilters = { status: "all", affiliation: "", gang: "", dateFrom: "", dateTo: "" };
+  activeFilters = { status: "all", affiliation: "", dateFrom: "", dateTo: "" };
   document.querySelector("#filterStatus").value = "all";
   document.querySelector("#filterAffiliation").value = "";
-  document.querySelector("#filterGang").value = "";
   document.querySelector("#filterDateFrom").value = "";
   document.querySelector("#filterDateTo").value = "";
   applyFiltersToRecords();
@@ -1388,27 +1385,46 @@ async function renderAuditList() {
     const result = await apiFetch(`/api/audit${queryString}`);
 
     listContainer.innerHTML = "";
+
+    let tableHtml = `
+      <table class="history-table" style="width: 100%; border-collapse: collapse; font-size: 12px; text-align: left;">
+        <thead>
+          <tr>
+            <th style="padding: 8px;">User</th>
+            <th style="padding: 8px;">Action</th>
+            <th style="padding: 8px;">Details</th>
+            <th style="padding: 8px;">Date & Time</th>
+          </tr>
+        </thead>
+        <tbody>
+    `;
+
     if (!result.logs || !result.logs.length) {
-      listContainer.innerHTML = "<p style='font-size:13px; color:var(--text-muted); padding:10px;'>No system matching events found inside current parameter sets.</p>";
-      return;
+      tableHtml += `
+        <tr>
+          <td colspan="4" style="padding: 16px; text-align: center; color: var(--text-muted); font-style: italic;">No system matching events found inside current parameter sets.</td>
+        </tr>
+      `;
+    } else {
+      result.logs.forEach(log => {
+        const dateStr = new Date(log.timestamp).toLocaleString();
+        tableHtml += `
+          <tr style="border-bottom: 1px solid var(--border-color);">
+            <td style="padding: 8px; font-weight:600; color:var(--primary);">${escapeHtml(log.username)}</td>
+            <td style="padding: 8px;"><strong style='color:var(--accent);'>${escapeHtml(log.action)}</strong></td>
+            <td style="padding: 8px; color:var(--text-muted); font-style:italic;">${escapeHtml(log.detail || "None")}</td>
+            <td style="padding: 8px; color:var(--text-muted); font-size:11px;">${dateStr}</td>
+          </tr>
+        `;
+      });
     }
 
-    result.logs.forEach(log => {
-      const item = document.createElement("div");
-      item.className = "audit-item";
-      item.style.cssText = "padding:8px; border-bottom:1px solid var(--border-color); font-size:12px; display:flex; flex-direction:column; gap:2px;";
+    tableHtml += `
+        </tbody>
+      </table>
+    `;
 
-      const dateStr = new Date(log.timestamp).toLocaleString();
-      item.innerHTML = `
-        <div style='display:flex; justify-content:between; font-weight:600;'>
-          <span style='color:var(--primary);'>${escapeHtml(log.username)}</span>
-          <span style='color:var(--text-muted); font-size:11px;'>${dateStr}</span>
-        </div>
-        <div>Action: <strong style='color:var(--accent);'>${escapeHtml(log.action)}</strong></div>
-        <div style='color:var(--text-muted); font-style:italic;'>Meta: ${escapeHtml(log.detail || "None")}</div>
-      `;
-      listContainer.appendChild(item);
-    });
+    listContainer.innerHTML = tableHtml;
   } catch (err) {
     listContainer.innerHTML = `<p style='color:var(--danger); padding:10px;'>Audit capture failure: ${escapeHtml(err.message)}</p>`;
   }
@@ -1417,15 +1433,11 @@ async function renderAuditList() {
 // ── TIMELINE RENDERERS ────────────────────────────────────────────────────────
 function renderMainHistoryTimeline(historyArray) {
   mainHistoryTimeline.innerHTML = "";
-  if (!historyArray || !historyArray.length) {
-    mainHistoryTimeline.innerHTML = '<div class="history-empty">No classification track details found.</div>';
-    return;
-  }
 
   let tableHtml = `
     <table class="history-table" style="width: 100%; border-collapse: collapse; font-size: 12px; text-align: left;">
       <thead>
-        <tr style="background: var(--bg-main); border-bottom: 2px solid var(--border-color);">
+        <tr>
           <th style="padding: 8px;">Date Admition/ Discharge</th>
           <th style="padding: 8px;">Status</th>
           <th style="padding: 8px;">Offence</th>
@@ -1437,7 +1449,14 @@ function renderMainHistoryTimeline(historyArray) {
       <tbody>
   `;
 
-  historyArray.slice().reverse().forEach(evt => {
+  if (!historyArray || !historyArray.length) {
+    tableHtml += `
+      <tr>
+        <td colspan="6" style="padding: 16px; text-align: center; color: var(--text-muted); font-style: italic;">No status changes recorded.</td>
+      </tr>
+    `;
+  } else {
+    historyArray.slice().reverse().forEach(evt => {
     const localTime = new Date(evt.timestamp).toLocaleString();
     const charge = evt.charge ? escapeHtml(evt.charge) : "-";
     const dischargeStatus = evt.dischargeStatus ? escapeHtml(evt.dischargeStatus) : "-";
@@ -1452,7 +1471,8 @@ function renderMainHistoryTimeline(historyArray) {
         <td style="padding: 8px; color: var(--text-muted); font-size: 10px;">${localTime}</td>
       </tr>
     `;
-  });
+    });
+  }
 
   tableHtml += `
       </tbody>

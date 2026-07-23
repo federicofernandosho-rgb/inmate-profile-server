@@ -325,6 +325,37 @@ searchInput.addEventListener("keydown", event => {
 fields.dob.addEventListener("change", setAgeFromDob);
 fields.dob.addEventListener("input", setAgeFromDob);
 
+fields.dob.addEventListener("focus", function() {
+  if (this.value) {
+    const d = new Date(this.value);
+    if (!isNaN(d.getTime())) {
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      this.value = `${yyyy}-${mm}-${dd}`;
+    }
+  }
+  this.type = "date";
+});
+
+fields.dob.addEventListener("blur", function() {
+  if (this.value) {
+    let d = new Date(this.value);
+    // If it is in yyyy-mm-dd format natively from the datepicker, parse it in local time correctly
+    if (this.value.match(/^\d{4}-\d{2}-\d{2}$/)) {
+      d = new Date(this.value + 'T00:00:00');
+    }
+    if (!isNaN(d.getTime())) {
+      this.type = "text";
+      this.value = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    } else {
+      this.type = "text";
+    }
+  } else {
+    this.type = "text";
+  }
+});
+
 window.addEventListener("afterprint", () => {
   document.body.classList.remove("printing");
   reportTemplate.innerHTML = "";
@@ -708,6 +739,19 @@ function renderCurrentRecord() {
       field.checked = !Boolean(record.inPrison);
     } else if (key === "statusDate") {
       field.value = record.inPrison ? record.admissionDate : record.dischargeDate || "";
+    } else if (key === "dob") {
+      if (record.dob) {
+        let d = new Date(record.dob);
+        if (record.dob.match(/^\d{4}-\d{2}-\d{2}$/)) d = new Date(record.dob + 'T00:00:00');
+        if (!isNaN(d.getTime())) {
+          field.type = "text";
+          field.value = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        } else {
+          field.value = record.dob;
+        }
+      } else {
+        field.value = "";
+      }
     } else {
       field.value = record[key] || "";
     }
@@ -871,7 +915,12 @@ function setAgeFromDob() {
 
 function parseDateInput(val) {
   if (!val) return "";
-  return val;
+  const d = new Date(val);
+  if (isNaN(d.getTime())) return val;
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
 }
 
 function normalizeImages(imgs) {

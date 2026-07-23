@@ -88,10 +88,12 @@ async function handleApi(req, res, url) {
     const user = users.find(item => item.username.toLowerCase() === String(body.username || "").toLowerCase());
 
     if (!user || !verifyPassword(body.password || "", user.password)) {
+      await appendAudit({ action: "login_failed", username: String(body.username || "").trim(), userId: null, detail: "Invalid credentials", timestamp: new Date().toISOString() });
       sendJson(res, 401, { error: "Invalid username or password" });
       return;
     }
 
+    await appendAudit({ action: "login", username: user.username, userId: user.id, detail: `Role: ${user.role}`, timestamp: new Date().toISOString() });
     sendJson(res, 200, await loginPayload(user));
     return;
   }
@@ -142,7 +144,6 @@ async function handleApi(req, res, url) {
 
   if (req.method === "GET" && url.pathname === "/api/records") {
     const recs = await getRecords();
-    await appendAudit({ action: "view_records", username: currentUser.username, userId: currentUser.id, timestamp: new Date().toISOString() });
     sendJson(res, 200, { records: recs });
     return;
   }
@@ -212,6 +213,7 @@ async function handleApi(req, res, url) {
 
     const user = await createUser(username, body.password, normalizeRole(body.role));
     await insertUser(user);
+    await appendAudit({ action: "create_user", username: currentUser.username, userId: currentUser.id, detail: `Created user '${username}' with role '${normalizeRole(body.role)}'`, timestamp: new Date().toISOString() });
     const updatedUsers = await getUsers();
     sendJson(res, 201, { user: publicUser(user), users: updatedUsers.map(publicUser) });
     return;
@@ -236,6 +238,7 @@ async function handleApi(req, res, url) {
       return;
     }
     await deleteUser(userId);
+    await appendAudit({ action: "delete_user", username: currentUser.username, userId: currentUser.id, detail: `Deleted user '${targetUser.username}' (role: ${targetUser.role})`, timestamp: new Date().toISOString() });
     const updatedUsers = await getUsers();
     sendJson(res, 200, { users: updatedUsers.map(publicUser) });
     return;
@@ -253,11 +256,14 @@ async function handleApi(req, res, url) {
       sendJson(res, 400, { error: "Password must be at least 4 characters" });
       return;
     }
+    const allUsers = await getUsers();
+    const targetUserPw = allUsers.find(u => String(u.id) === userId);
     const success = await updateUserPassword(userId, body.password);
     if (!success) {
       sendJson(res, 404, { error: "User not found" });
       return;
     }
+    await appendAudit({ action: "change_password", username: currentUser.username, userId: currentUser.id, detail: `Changed password for user '${targetUserPw?.username || userId}'`, timestamp: new Date().toISOString() });
     const updatedUsers = await getUsers();
     sendJson(res, 200, { users: updatedUsers.map(publicUser) });
     return;
@@ -272,11 +278,14 @@ async function handleApi(req, res, url) {
     const userId = userDisableMatch[1];
     const body = await readBody(req);
     const disabled = !!body.disabled;
+    const allUsersForDisable = await getUsers();
+    const targetUserDis = allUsersForDisable.find(u => String(u.id) === userId);
     const success = await setUserDisabled(userId, disabled);
     if (!success) {
       sendJson(res, 404, { error: "User not found" });
       return;
     }
+    await appendAudit({ action: disabled ? "disable_user" : "enable_user", username: currentUser.username, userId: currentUser.id, detail: `${disabled ? "Disabled" : "Enabled"} user '${targetUserDis?.username || userId}'`, timestamp: new Date().toISOString() });
     const updatedUsers = await getUsers();
     sendJson(res, 200, { users: updatedUsers.map(publicUser) });
     return;

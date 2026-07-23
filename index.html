@@ -463,11 +463,23 @@
             Action
             <select id="auditFilterAction">
               <option value="">All actions</option>
-              <option value="view_records">Viewed Records</option>
-              <option value="update_records">Edited Record</option>
-              <option value="create_record">Created Record</option>
-              <option value="delete_record">Deleted Record</option>
-              <option value="update_images">Updated Images</option>
+              <optgroup label="Authentication">
+                <option value="login">Login</option>
+                <option value="login_failed">Failed Login</option>
+              </optgroup>
+              <optgroup label="Records">
+                <option value="update_records">Edited Record</option>
+                <option value="create_record">Created Record</option>
+                <option value="delete_record">Deleted Record</option>
+                <option value="update_images">Updated Images</option>
+              </optgroup>
+              <optgroup label="User Management">
+                <option value="create_user">Created User</option>
+                <option value="delete_user">Deleted User</option>
+                <option value="change_password">Changed Password</option>
+                <option value="disable_user">Disabled User</option>
+                <option value="enable_user">Enabled User</option>
+              </optgroup>
             </select>
           </label>
           <button type="button" id="auditApplyFilter">Filter</button>

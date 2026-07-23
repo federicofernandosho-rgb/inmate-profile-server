@@ -112,8 +112,14 @@ async function handleApi(req, res, url) {
       sendJson(res, 403, { error: "Admin access required" });
       return;
     }
-    const log = await readJson(AUDIT_FILE, []);
-    sendJson(res, 200, { log });
+    let logs = await readJson(AUDIT_FILE, []);
+    const userFilter = url.searchParams.get("user");
+    const actionFilter = url.searchParams.get("action");
+    if (userFilter) logs = logs.filter(e => e.username && e.username.toLowerCase().includes(userFilter.toLowerCase()));
+    if (actionFilter) logs = logs.filter(e => e.action === actionFilter);
+    // Return newest first
+    logs = logs.slice().reverse();
+    sendJson(res, 200, { logs });
     return;
   }
 

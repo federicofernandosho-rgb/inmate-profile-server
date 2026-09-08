@@ -396,6 +396,43 @@
             <span>Charge Admitted On</span>
             <input id="modalAdmissionCharge" type="text" autocomplete="off" required>
           </label>
+          <label class="login-field">
+            <span>Conviction Status</span>
+            <select id="modalAdmissionConvictionStatus" required>
+              <option value="">Select Status</option>
+              <option value="Convicted">Convicted</option>
+              <option value="Remanded">Remanded</option>
+            </select>
+          </label>
+          <label class="login-field">
+            <span>Current Location</span>
+            <select id="modalAdmissionLocation" required>
+              <option value="">Select Location</option>
+              <option value="T-01">T-01</option>
+              <option value="T-02">T-02</option>
+              <option value="T-03">T-03</option>
+              <option value="T-04">T-04</option>
+              <option value="T-05">T-05</option>
+              <option value="T-06">T-06</option>
+              <option value="T-07">T-07</option>
+              <option value="T-08-1">T-08-1</option>
+              <option value="T-08-2">T-08-2</option>
+              <option value="T-09">T-09</option>
+              <option value="T-10">T-10</option>
+              <option value="T-11">T-11</option>
+              <option value="RRC">RRC</option>
+              <option value="ARC">ARC</option>
+              <option value="WYF">WYF</option>
+              <option value="FEMALES">FEMALES</option>
+              <option value="SHU">SHU</option>
+              <option value="MULTI-MAX">MULTI-MAX</option>
+              <option value="HOLDING CELL">HOLDING CELL</option>
+            </select>
+          </label>
+          <label class="login-field">
+            <span>Cell Number (Optional)</span>
+            <input id="modalAdmissionCellNumber" type="text" autocomplete="off" placeholder="e.g. 12 or A-03">
+          </label>
           <div style="display: flex; gap: 1rem; margin-top: 1.5rem; justify-content: flex-end;">
             <button type="button" class="secondary" id="admissionCancelBtn">Cancel</button>
             <button type="submit" id="admissionConfirmBtn">Confirm</button>
@@ -431,6 +468,35 @@
               <option value="Remanded">Remanded</option>
               <option value="Convicted">Convicted</option>
             </select>
+          </label>
+          <label class="login-field">
+            <span>Current Location</span>
+            <select id="modalDischargeLocation">
+              <option value="">Select Location</option>
+              <option value="T-01">T-01</option>
+              <option value="T-02">T-02</option>
+              <option value="T-03">T-03</option>
+              <option value="T-04">T-04</option>
+              <option value="T-05">T-05</option>
+              <option value="T-06">T-06</option>
+              <option value="T-07">T-07</option>
+              <option value="T-08-1">T-08-1</option>
+              <option value="T-08-2">T-08-2</option>
+              <option value="T-09">T-09</option>
+              <option value="T-10">T-10</option>
+              <option value="T-11">T-11</option>
+              <option value="RRC">RRC</option>
+              <option value="ARC">ARC</option>
+              <option value="WYF">WYF</option>
+              <option value="FEMALES">FEMALES</option>
+              <option value="SHU">SHU</option>
+              <option value="MULTI-MAX">MULTI-MAX</option>
+              <option value="HOLDING CELL">HOLDING CELL</option>
+            </select>
+          </label>
+          <label class="login-field">
+            <span>Cell Number (Optional)</span>
+            <input id="modalDischargeCellNumber" type="text" autocomplete="off" placeholder="e.g. 12 or A-03">
           </label>
           <div style="display: flex; gap: 1rem; margin-top: 1.5rem; justify-content: flex-end;">
             <button type="button" class="secondary" id="dischargeCancelBtn">Cancel</button>

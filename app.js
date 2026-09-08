@@ -162,8 +162,18 @@ function handleIncarcerationClick(e) {
     if (rec.inPrison) {
       document.querySelector("#modalAdmissionDate").value = rec.admissionDate || "";
       const lastEvent = rec.statusHistory && rec.statusHistory.slice().reverse().find(ev => ev.type === "Admitted");
-      if (lastEvent && lastEvent.charge) {
-        document.querySelector("#modalAdmissionCharge").value = lastEvent.charge;
+      if (lastEvent) {
+        if (lastEvent.charge) {
+          document.querySelector("#modalAdmissionCharge").value = lastEvent.charge;
+        }
+        if (lastEvent.convictionStatus) {
+          document.querySelector("#modalAdmissionConvictionStatus").value = lastEvent.convictionStatus;
+        }
+        if (lastEvent.location) {
+          const [location, cellNumber] = splitLocationAndCell(lastEvent.location);
+          document.querySelector("#modalAdmissionLocation").value = location;
+          document.querySelector("#modalAdmissionCellNumber").value = cellNumber;
+        }
       }
     }
     admissionDialog.showModal();
@@ -175,10 +185,34 @@ function handleIncarcerationClick(e) {
       if (lastEvent) {
         if (lastEvent.charge) document.querySelector("#modalDischargeCharge").value = lastEvent.charge;
         if (lastEvent.dischargeStatus) document.querySelector("#modalDischargeStatus").value = lastEvent.dischargeStatus;
+        if (lastEvent.location) {
+          const [location, cellNumber] = splitLocationAndCell(lastEvent.location);
+          document.querySelector("#modalDischargeLocation").value = location;
+          document.querySelector("#modalDischargeCellNumber").value = cellNumber;
+        }
       }
     }
     dischargeDialog.showModal();
   }
+}
+
+function splitLocationAndCell(locationValue) {
+  if (!locationValue) return ["", ""];
+  const trimmed = String(locationValue).trim();
+  const match = trimmed.match(/^(.*?)(?:\s+Cell\s+No\.?\s*[:#-]?\s*(.*)|\s+\[(.*)\]|\s+\((.*)\))?$/i);
+  if (!match) return [trimmed, ""];
+
+  const rawLocation = match[1] || "";
+  const cellNumber = (match[2] || match[3] || match[4] || "").trim();
+  return [rawLocation.trim(), cellNumber];
+}
+
+function buildLocationValue(location, cellNumber) {
+  const cleanLocation = (location || "").trim();
+  const cleanCell = (cellNumber || "").trim();
+  if (!cleanLocation) return "";
+  if (!cleanCell) return cleanLocation;
+  return `${cleanLocation} Cell No: ${cleanCell}`;
 }
 
 document.querySelector("#closeAdmissionModal").addEventListener("click", () => admissionDialog.close());
@@ -192,6 +226,11 @@ admissionForm.addEventListener("submit", (e) => {
     type: "Admitted",
     date: document.querySelector("#modalAdmissionDate").value,
     charge: document.querySelector("#modalAdmissionCharge").value,
+    convictionStatus: document.querySelector("#modalAdmissionConvictionStatus").value,
+    location: buildLocationValue(
+      document.querySelector("#modalAdmissionLocation").value,
+      document.querySelector("#modalAdmissionCellNumber").value
+    ),
     timestamp: new Date().toISOString(),
     username: currentUser?.username || "system"
   };
@@ -213,6 +252,10 @@ dischargeForm.addEventListener("submit", (e) => {
     date: document.querySelector("#modalDischargeDate").value,
     charge: document.querySelector("#modalDischargeCharge").value,
     dischargeStatus: document.querySelector("#modalDischargeStatus").value,
+    location: buildLocationValue(
+      document.querySelector("#modalDischargeLocation").value,
+      document.querySelector("#modalDischargeCellNumber").value
+    ),
     timestamp: new Date().toISOString(),
     username: currentUser?.username || "system"
   };
@@ -325,36 +368,40 @@ searchInput.addEventListener("keydown", event => {
 fields.dob.addEventListener("change", setAgeFromDob);
 fields.dob.addEventListener("input", setAgeFromDob);
 
-fields.dob.addEventListener("focus", function() {
-  if (this.value) {
-    const d = new Date(this.value);
-    if (!isNaN(d.getTime())) {
-      const yyyy = d.getFullYear();
-      const mm = String(d.getMonth() + 1).padStart(2, '0');
-      const dd = String(d.getDate()).padStart(2, '0');
-      this.value = `${yyyy}-${mm}-${dd}`;
+function attachDateFieldCalendarBehavior(field) {
+  field.addEventListener("focus", function() {
+    if (this.value) {
+      const d = new Date(this.value);
+      if (!isNaN(d.getTime())) {
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        this.value = `${yyyy}-${mm}-${dd}`;
+      }
     }
-  }
-  this.type = "date";
-});
+    this.type = "date";
+  });
 
-fields.dob.addEventListener("blur", function() {
-  if (this.value) {
-    let d = new Date(this.value);
-    // If it is in yyyy-mm-dd format natively from the datepicker, parse it in local time correctly
-    if (this.value.match(/^\d{4}-\d{2}-\d{2}$/)) {
-      d = new Date(this.value + 'T00:00:00');
-    }
-    if (!isNaN(d.getTime())) {
-      this.type = "text";
-      this.value = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  field.addEventListener("blur", function() {
+    if (this.value) {
+      let d = new Date(this.value);
+      if (this.value.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        d = new Date(this.value + 'T00:00:00');
+      }
+      if (!isNaN(d.getTime())) {
+        this.type = "text";
+        this.value = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      } else {
+        this.type = "text";
+      }
     } else {
       this.type = "text";
     }
-  } else {
-    this.type = "text";
-  }
-});
+  });
+}
+
+attachDateFieldCalendarBehavior(fields.dob);
+attachDateFieldCalendarBehavior(fields.statusDate);
 
 window.addEventListener("afterprint", () => {
   document.body.classList.remove("printing");
@@ -708,6 +755,7 @@ function getFormRecord() {
   const current = records[currentIndex] || emptyRecord();
   const dob = parseDateInput(fields.dob.value);
   const age = calculateAge(dob);
+  const statusDateValue = fields.statusDate.dataset.isoValue || parseDateInput(fields.statusDate.value);
   fields.age.value = age;
 
   return {
@@ -724,8 +772,8 @@ function getFormRecord() {
     comment: fields.comment.value.trim(),
     inPrison: fields.incarcerationIn.checked,
     images: normalizeImages(current.images),
-    admissionDate: fields.incarcerationIn.checked ? fields.statusDate.value : (current.admissionDate || ""),
-    dischargeDate: fields.incarcerationOut.checked ? fields.statusDate.value : (current.dischargeDate || "")
+    admissionDate: fields.incarcerationIn.checked ? statusDateValue : (current.admissionDate || ""),
+    dischargeDate: fields.incarcerationOut.checked ? statusDateValue : (current.dischargeDate || "")
   };
 }
 
@@ -738,7 +786,15 @@ function renderCurrentRecord() {
     } else if (key === "incarcerationOut") {
       field.checked = !Boolean(record.inPrison);
     } else if (key === "statusDate") {
-      field.value = record.inPrison ? record.admissionDate : record.dischargeDate || "";
+      const isoValue = record.inPrison ? record.admissionDate : (record.dischargeDate || "");
+      field.dataset.isoValue = isoValue || "";
+      if (isoValue) {
+        field.type = "text";
+        field.value = formatMediumDate(isoValue);
+      } else {
+        field.type = "date";
+        field.value = "";
+      }
     } else if (key === "dob") {
       if (record.dob) {
         let d = new Date(record.dob);
@@ -992,7 +1048,7 @@ function updateStatus() {
 function handleSearch() {
   const query = searchInput.value.trim();
   if (!query) {
-    showMessage("Please enter an Inmate ID to execute an exact index look up.");
+    showMessage("Please enter an inmate ID to search.");
     return;
   }
 
@@ -1010,7 +1066,7 @@ function handleSearch() {
 // ── DATA CHANGE HANDLERS ─────────────────────────────────────────────────────
 function validateRecord(record) {
   if (!record.inmateId || !record.firstName || !record.lastName) {
-    showMessage("Inmate ID, First Name, and Last Name are strict system identity data requirements.");
+    showMessage("Please enter the inmate ID, first name, and last name.");
     return false;
   }
   return true;
@@ -1018,7 +1074,7 @@ function validateRecord(record) {
 
 async function saveNewRecord() {
   if (!canEdit()) {
-    showMessage("Read-only verification layers cannot save data sets.");
+    showMessage("You do not have permission to save this record.");
     return;
   }
 
@@ -1030,7 +1086,7 @@ async function saveNewRecord() {
   const isBlankSlot = records.length === 1 && !records[0].inmateId && !records[0].firstName;
   const duplicate = records.some((item, index) => item.inmateId === record.inmateId && index !== currentIndex);
   if (!isBlankSlot && duplicate) {
-    showMessage("Inmate ID duplication collision detected. Execute Update Record on original record instead.");
+    showMessage("That inmate ID is already in use. Please update the existing record instead.");
     return;
   }
 
@@ -1046,12 +1102,12 @@ async function saveNewRecord() {
   isNewRecord = false;
   await persistRecords("create_record", `ID ${record.inmateId} - ${record.firstName} ${record.lastName}`);
   renderCurrentRecord();
-  showMessage("Inmate intelligence file successfully added to database ledger.", "success");
+  showMessage("New inmate record saved successfully.", "success");
 }
 
 async function updateCurrentRecord() {
   if (!canEdit()) {
-    showMessage("Read-only security roles cannot update record configurations.");
+    showMessage("You do not have permission to update this record.");
     return;
   }
 
@@ -1062,24 +1118,24 @@ async function updateCurrentRecord() {
 
   const duplicate = records.some((item, index) => item.inmateId === record.inmateId && index !== currentIndex);
   if (duplicate) {
-    showMessage("Primary Key Identity mismatch: Inmate ID assignment conflicts with another tracking module.");
+    showMessage("That inmate ID is already assigned to another record.");
     return;
   }
 
   records[currentIndex] = record;
   await persistRecords("update_records", `ID ${record.inmateId} - ${record.firstName} ${record.lastName}`);
   renderCurrentRecord();
-  showMessage("Inmate file updated successfully.", "success");
+  showMessage("Record updated successfully.", "success");
 }
 
 async function deleteRecord() {
   if (!canManageUsers()) {
-    showMessage("Security configuration requires Super Admin credentials to drop tables or rows.");
+    showMessage("Only a Super Admin can delete a record.");
     return;
   }
 
   if (records.length === 0) {
-    showMessage("No functional profiles mapped to run deletions against.");
+    showMessage("There is no record to delete.");
     return;
   }
 
@@ -1108,7 +1164,7 @@ async function deleteRecord() {
     isNewRecord = false;
     applyFiltersToRecords();
     renderCurrentRecord();
-    showMessage("Inmate record dropped from master system archives.", "success");
+    showMessage("Record deleted successfully.", "success");
   } catch (error) {
     showMessage(error.message || "Failed to finalize database purge array mapping.", "error");
   }
@@ -1143,7 +1199,7 @@ function showDeleteConfirm(name, id) {
 
 async function createNewRecord() {
   if (!canEdit()) {
-    showMessage("Read-only status limits row addition operations.");
+    showMessage("You do not have permission to add a new record.");
     return;
   }
 
@@ -1151,7 +1207,7 @@ async function createNewRecord() {
   currentIndex = records.length - 1;
   isNewRecord = true;
   renderCurrentRecord();
-  showMessage("Instantiated blank row mapping parameters. Supply data stack then save.");
+  showMessage("A new blank record is ready. Fill in the details and save.");
   fields.inmateId.focus();
 }
 
@@ -1170,7 +1226,7 @@ function cancelNewRecord() {
   isNewRecord = false;
   pendingStatusEvent = null;
   renderCurrentRecord();
-  showMessage("Operation aborted. Reverting configuration to structural history layers.", "info");
+  showMessage("Action cancelled.", "info");
 }
 
 function showPreviousRecord() {
@@ -1221,59 +1277,92 @@ function toggleImageTextLabel(imgElement, text) {
   }
 }
 
-async function saveIntelDetails() {
-  if (!canEdit()) return;
+async function persistCurrentIntelState({ silent = false, closeAfterSave = false } = {}) {
+  if (!canEdit()) return false;
+
   const record = records[currentIndex];
-  if (!record) return;
+  if (!record) return false;
 
   record.images = {
     frontFace: frontFacePreview.src || "",
     rightFace: rightFacePreview.src || "",
     leftFace: leftFacePreview.src || "",
-    tattoos: record.images?.tattoos || []
+    tattoos: Array.isArray(record.images?.tattoos) ? record.images.tattoos : []
   };
 
   await persistRecords("update_images", `ID ${record.inmateId} - Mugshots and tattoo libraries transformed.`);
   renderCurrentRecord();
-  intelDialog.close();
-  showMessage("Image sub-tables integrated securely.", "success");
+
+  if (closeAfterSave) {
+    intelDialog.close();
+  }
+
+  if (!silent) {
+    showMessage("Photos and images saved successfully.", "success");
+  }
+
+  return true;
 }
 
-function setImage(event, key) {
+async function saveIntelDetails() {
+  await persistCurrentIntelState({ closeAfterSave: true });
+}
+
+async function setImage(event, key) {
   const file = event.target.files[0];
   if (!file) return;
 
+  const record = records[currentIndex];
+  if (!record) return;
+  if (!record.images) record.images = normalizeImages(null);
+
   const reader = new FileReader();
-  reader.onload = function (e) {
+  reader.onload = async function (e) {
     if (key === "frontFace") {
       frontFacePreview.src = e.target.result;
       toggleImageTextLabel(frontFacePreview, "");
+      record.images.frontFace = e.target.result;
     } else if (key === "rightFace") {
       rightFacePreview.src = e.target.result;
       toggleImageTextLabel(rightFacePreview, "");
+      record.images.rightFace = e.target.result;
     } else if (key === "leftFace") {
       leftFacePreview.src = e.target.result;
       toggleImageTextLabel(leftFacePreview, "");
+      record.images.leftFace = e.target.result;
     }
+
+    await persistCurrentIntelState({ silent: true });
+    event.target.value = "";
   };
   reader.readAsDataURL(file);
 }
 
-function removeFaceImage(key) {
+async function removeFaceImage(key) {
   if (!canEdit()) return;
+
+  const record = records[currentIndex];
+  if (!record) return;
+  if (!record.images) record.images = normalizeImages(null);
+
   if (key === "frontFace") {
     frontFacePreview.removeAttribute("src");
     toggleImageTextLabel(frontFacePreview, "No Facial view photo");
+    record.images.frontFace = "";
   } else if (key === "rightFace") {
     rightFacePreview.removeAttribute("src");
     toggleImageTextLabel(rightFacePreview, "No Right Side photo");
+    record.images.rightFace = "";
   } else if (key === "leftFace") {
     leftFacePreview.removeAttribute("src");
     toggleImageTextLabel(leftFacePreview, "No Left Side photo");
+    record.images.leftFace = "";
   }
+
+  await persistCurrentIntelState({ silent: true });
 }
 
-function addTattooImages(event) {
+async function addTattooImages(event) {
   if (!canEdit()) return;
   const files = Array.from(event.target.files);
   if (!files.length) return;
@@ -1285,25 +1374,29 @@ function addTattooImages(event) {
 
   let processedCount = 0;
 
-  files.forEach(file => {
+  for (const file of files) {
     const reader = new FileReader();
-    reader.onload = function (e) {
-      openTattooDescModal(e.target.result, file.name, (description) => {
-        record.images.tattoos.push({
-          src: e.target.result,
-          name: file.name,
-          description: description || "No descriptive indexing tags added."
-        });
+    await new Promise((resolve) => {
+      reader.onload = async function (e) {
+        openTattooDescModal(e.target.result, file.name, async (description) => {
+          record.images.tattoos.push({
+            src: e.target.result,
+            name: file.name,
+            description: description || "No descriptive indexing tags added."
+          });
 
-        processedCount++;
-        if (processedCount === files.length) {
-          renderTattoos(record.images.tattoos);
-          event.target.value = "";
-        }
-      });
-    };
-    reader.readAsDataURL(file);
-  });
+          processedCount++;
+          if (processedCount === files.length) {
+            renderTattoos(record.images.tattoos);
+            await persistCurrentIntelState({ silent: true });
+            event.target.value = "";
+          }
+          resolve();
+        });
+      };
+      reader.readAsDataURL(file);
+    });
+  }
 }
 
 function openTattooDescModal(src, filename, callback) {
@@ -1480,6 +1573,17 @@ async function renderAuditList() {
 }
 
 // ── TIMELINE RENDERERS ────────────────────────────────────────────────────────
+function formatMediumDate(value) {
+  if (!value) return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric"
+  }).format(date);
+}
+
 function renderMainHistoryTimeline(historyArray) {
   mainHistoryTimeline.innerHTML = "";
 
@@ -1487,9 +1591,10 @@ function renderMainHistoryTimeline(historyArray) {
     <table class="history-table" style="width: 100%; border-collapse: collapse; font-size: 12px; text-align: left;">
       <thead>
         <tr>
-          <th style="padding: 8px;">Date Admition/ Discharge</th>
+          <th style="padding: 8px;">Date Admission/Discharge</th>
           <th style="padding: 8px;">Status</th>
           <th style="padding: 8px;">Offence</th>
+          <th style="padding: 8px;">Current Location</th>
           <th style="padding: 8px;">Prison Status</th>
           <th style="padding: 8px;">User</th>
           <th style="padding: 8px;">Date Edited</th>
@@ -1501,25 +1606,28 @@ function renderMainHistoryTimeline(historyArray) {
   if (!historyArray || !historyArray.length) {
     tableHtml += `
       <tr>
-        <td colspan="6" style="padding: 16px; text-align: center; color: var(--text-muted); font-style: italic;">No status changes recorded.</td>
+        <td colspan="7" style="padding: 16px; text-align: center; color: var(--text-muted); font-style: italic;">No status changes recorded.</td>
       </tr>
     `;
   } else {
     historyArray.slice().reverse().forEach(evt => {
-    const localTime = new Date(evt.timestamp).toLocaleString();
-    const charge = evt.charge ? escapeHtml(evt.charge) : "-";
-    const dischargeStatus = evt.dischargeStatus ? escapeHtml(evt.dischargeStatus) : "-";
-    
-    tableHtml += `
-      <tr style="border-bottom: 1px solid var(--border-color);">
-        <td style="padding: 8px;">${evt.date}</td>
-        <td style="padding: 8px;"><strong style="color:var(--primary);">${evt.type}</strong></td>
-        <td style="padding: 8px; color:var(--text-muted);">${charge}</td>
-        <td style="padding: 8px; color:var(--text-muted);">${dischargeStatus}</td>
-        <td style="padding: 8px;">${escapeHtml(evt.username)}</td>
-        <td style="padding: 8px; color: var(--text-muted); font-size: 10px;">${localTime}</td>
-      </tr>
-    `;
+      const eventDate = formatMediumDate(evt.date);
+      const editedDate = formatMediumDate(evt.timestamp);
+      const charge = evt.charge ? escapeHtml(evt.charge) : "-";
+      const location = evt.location ? escapeHtml(evt.location) : "-";
+      const prisonStatus = evt.convictionStatus || evt.dischargeStatus || "-";
+
+      tableHtml += `
+        <tr style="border-bottom: 1px solid var(--border-color);">
+          <td style="padding: 8px;">${escapeHtml(eventDate)}</td>
+          <td style="padding: 8px;"><strong style="color:var(--primary);">${escapeHtml(evt.type)}</strong></td>
+          <td style="padding: 8px; color:var(--text-muted);">${charge}</td>
+          <td style="padding: 8px; color:var(--text-muted);">${location}</td>
+          <td style="padding: 8px; color:var(--text-muted);">${escapeHtml(prisonStatus)}</td>
+          <td style="padding: 8px;">${escapeHtml(evt.username)}</td>
+          <td style="padding: 8px; color: var(--text-muted); font-size: 10px;">${escapeHtml(editedDate)}</td>
+        </tr>
+      `;
     });
   }
 
@@ -1534,7 +1642,7 @@ function renderMainHistoryTimeline(historyArray) {
 // ── EXPLOITATION SYSTEM EXPORTS (CSV) ──────────────────────────────────────────
 function exportCsv() {
   if (!records || !records.length || (records.length === 1 && !records[0].inmateId)) {
-    showMessage("Empty analytical data matrices cannot execute file conversions.");
+    showMessage("There is no data to export yet.");
     return;
   }
 
@@ -1566,7 +1674,7 @@ function exportCsv() {
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
-  showMessage("CSV dataset generated and downloaded successfully.", "success");
+  showMessage("CSV file downloaded successfully.", "success");
 }
 
 // ── SECURE PRINT AND AUTOMATED REPORT MATRIX PIPELINES ────────────────────────

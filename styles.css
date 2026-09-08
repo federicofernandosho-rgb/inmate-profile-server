@@ -489,9 +489,9 @@ select {
 
 .field {
   display: grid;
-  grid-template-columns: 140px minmax(0, 280px);
+  grid-template-columns: 88px minmax(0, 280px);
   align-items: start;
-  gap: 14px;
+  gap: 12px;
 }
 
 .field span {
@@ -501,7 +501,7 @@ select {
 
 .inmate-id {
   width: min(320px, 100%);
-  grid-template-columns: 140px minmax(0, 1fr);
+  grid-template-columns: 88px minmax(0, 1fr);
 }
 
 .inmate-id span {
@@ -538,14 +538,14 @@ textarea {
 
 .name-field {
   display: grid;
-  grid-template-columns: 140px minmax(0, 1fr);
-  gap: 14px;
+  grid-template-columns: 88px minmax(0, 1fr);
+  gap: 12px;
   align-items: start;
 }
 
 .dob-field {
   display: grid;
-  grid-template-columns: 120px minmax(0, 1fr);
+  grid-template-columns: 62px minmax(0, 1fr);
   gap: 10px;
 }
 
@@ -588,12 +588,12 @@ textarea {
 
 .address-field {
   grid-column: 1 / -1;
-  grid-template-columns: 120px minmax(0, 1fr);
+  grid-template-columns: 72px minmax(0, 1fr);
 }
 
 .comment-field {
   grid-column: 1 / -1;
-  grid-template-columns: 94px minmax(0, 1fr);
+  grid-template-columns: 70px minmax(0, 1fr);
   align-items: start;
 }
 

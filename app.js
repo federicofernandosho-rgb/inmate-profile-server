@@ -404,12 +404,6 @@ attachDateFieldCalendarBehavior(fields.dob);
 attachDateFieldCalendarBehavior(fields.statusDate);
 
 window.addEventListener("afterprint", () => {
-  // Restore dark-mode class if it was active before PDF generation stripped it
-  if (document.body.dataset.restoreDarkMode === "1") {
-    document.body.classList.add("dark-mode");
-  }
-  delete document.body.dataset.restoreDarkMode;
-
   document.body.classList.remove("printing");
   reportTemplate.innerHTML = "";
   const dynamicStyle = document.getElementById("dynamic-print-style");
@@ -1819,11 +1813,16 @@ function generatePdfReport() {
   printStyle.id = "dynamic-print-style";
   printStyle.innerHTML = `
     @media print {
-      /* PDF ISOLATION: Force light-mode CSS variables so dark mode never bleeds
-         into the printed / PDF output */
-      html, body, body.dark-mode {
+      /* PDF THEME ISOLATION: Force light-mode environment and variables */
+      :root,
+      html,
+      body,
+      body.dark-mode {
         color-scheme: light !important;
-        --bg: #eef2f7 !important;
+        background: #ffffff !important;
+        background-color: #ffffff !important;
+        color: #1f2937 !important;
+        --bg: #ffffff !important;
         --panel: #ffffff !important;
         --ink: #1f2937 !important;
         --muted: #667085 !important;
@@ -1836,7 +1835,9 @@ function generatePdfReport() {
         --danger: #d14343 !important;
       }
       html, body {
-        background: #fff;
+        background: #ffffff !important;
+        background-color: #ffffff !important;
+        color: #1f2937 !important;
         margin: 0 !important;
         padding: 0 !important;
         width: auto !important;
@@ -1857,12 +1858,20 @@ function generatePdfReport() {
         padding: 0; 
         box-sizing: border-box;
         overflow: hidden;
+        background: #ffffff !important;
+        background-color: #ffffff !important;
+        color: #1f2937 !important;
+        color-scheme: light !important;
       }
       .print-wrapper,
       .print-body-content {
         width: 100% !important;
         max-width: 100% !important;
         overflow: hidden;
+        background: #ffffff !important;
+        background-color: #ffffff !important;
+        color: #1f2937 !important;
+        color-scheme: light !important;
       }
       @page {
         size: letter;
@@ -1889,6 +1898,8 @@ function generatePdfReport() {
     .print-wrapper {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
       color: #1f2937;
+      background: #ffffff;
+      color-scheme: light;
       line-height: 1.4;
       width: 100%;
       max-width: 100%;
@@ -2231,25 +2242,7 @@ function generatePdfReport() {
   `;
 
   document.body.classList.add("printing");
-
-  // ── PDF DARK-MODE ISOLATION ───────────────────────────────────────────────────
-  // Temporarily remove dark-mode from <body> for the duration of the print call.
-  // CSS @media print variable overrides are NOT sufficient because:
-  //   1. body.dark-mode has `background: ...gradient... !important` which wins
-  //      over the @media print background reset.
-  //   2. `color-scheme: dark` instructs the browser rendering engine itself to
-  //      use dark native controls — this cannot be undone with CSS alone.
-  // Removing the class before window.print() is the only fully reliable fix.
-  // The class (and its visual state) is restored immediately in afterprint.
-  const wasDarkMode = document.body.classList.contains("dark-mode");
-  if (wasDarkMode) {
-    document.body.classList.remove("dark-mode");
-  }
-
   window.print();
-  // Note: afterprint handler below restores dark-mode if it was active.
-  // Store the flag on the body element so afterprint can read it cross-scope.
-  document.body.dataset.restoreDarkMode = wasDarkMode ? "1" : "0";
 }
 // ── USER INTERFACE THEME ALTERATIONS ─────────────────────────────────────────
 function toggleDarkMode() {

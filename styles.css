@@ -15,22 +15,24 @@
   font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
-/* Dark Mode */
-body.dark-mode {
-  color-scheme: dark;
-  --bg: #0f172a;
-  --panel: #1e293b;
-  --ink: #e2e8f0;
-  --muted: #94a3b8;
-  --line: #334155;
-  --field: #1e293b;
-  --field-border: #475569;
-  --action: #60a5fa;
-  --action-hover: #3b82f6;
-  --secondary: #1e293b;
-  --danger: #f87171;
-  background: linear-gradient(180deg, #0f172a, #1e293b) !important;
-  color: var(--ink);
+/* Dark Mode (Screen Only - isolated from Print & PDF generation) */
+@media screen {
+  body.dark-mode {
+    color-scheme: dark;
+    --bg: #0f172a;
+    --panel: #1e293b;
+    --ink: #e2e8f0;
+    --muted: #94a3b8;
+    --line: #334155;
+    --field: #1e293b;
+    --field-border: #475569;
+    --action: #60a5fa;
+    --action-hover: #3b82f6;
+    --secondary: #1e293b;
+    --danger: #f87171;
+    background: linear-gradient(180deg, #0f172a, #1e293b) !important;
+    color: var(--ink);
+  }
 }
 
 body.dark-mode .app-header,
@@ -1714,18 +1716,18 @@ body.dark-mode .audit-detail {
     margin: 0.5in !important;
   }
 
-  /* PDF ISOLATION – DEFENCE IN DEPTH (safety net layer)
-     Primary fix: generatePdfReport() removes the dark-mode class from <body>
-     before window.print() and the afterprint handler restores it afterwards.
-     This block is a secondary CSS safety net that resets all CSS custom
-     properties to light-mode values in case the class is somehow still present
-     at print time (e.g. browser pre-print snapshot timing edge cases).
-     Both layers together guarantee the PDF always renders in light mode. */
+  /* PDF & PRINT THEME ISOLATION:
+     Force light-mode appearance, white background, dark readable text,
+     and reset all CSS variables regardless of the application's active theme. */
+  :root,
   html,
   body,
   body.dark-mode {
     color-scheme: light !important;
-    --bg: #eef2f7 !important;
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    color: #1f2937 !important;
+    --bg: #ffffff !important;
     --panel: #ffffff !important;
     --ink: #1f2937 !important;
     --muted: #667085 !important;
@@ -1736,12 +1738,13 @@ body.dark-mode .audit-detail {
     --action-hover: #335c96 !important;
     --secondary: #f4f6f9 !important;
     --danger: #d14343 !important;
-    background: #ffffff !important;
   }
 
   html,
   body {
     background: #ffffff !important;
+    background-color: #ffffff !important;
+    color: #1f2937 !important;
     width: 100% !important;
     margin: 0 !important;
     padding: 0 !important;
@@ -1752,9 +1755,26 @@ body.dark-mode .audit-detail {
     display: none !important;
   }
 
-  body.printing .report-template {
+  body.printing .report-template,
+  #reportTemplate,
+  .print-wrapper,
+  .print-body-content {
     display: block !important;
-    color: #000000 !important;
+    color-scheme: light !important;
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    color: #1f2937 !important;
+    --bg: #ffffff !important;
+    --panel: #ffffff !important;
+    --ink: #1f2937 !important;
+    --muted: #667085 !important;
+    --line: #d6d9e0 !important;
+    --field: #f8fafc !important;
+    --field-border: #d2d6dc !important;
+    --action: #3d70b2 !important;
+    --action-hover: #335c96 !important;
+    --secondary: #f4f6f9 !important;
+    --danger: #d14343 !important;
     width: 100% !important;
     padding: 0 !important;
     font-size: 12px !important;
@@ -2979,13 +2999,18 @@ body.dark-mode .history-summary-card {
     }
   }
 
-  /* PDF ISOLATION: Reset ALL CSS custom properties to light-mode values so dark
-     mode variables never bleed into printed / PDF output */
+  /* PDF & PRINT THEME ISOLATION:
+     Force light-mode appearance, white background, dark readable text,
+     and reset all CSS variables regardless of the application's active theme. */
+  :root,
   html,
   body,
   body.dark-mode {
     color-scheme: light !important;
-    --bg: #eef2f7 !important;
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    color: #1f2937 !important;
+    --bg: #ffffff !important;
     --panel: #ffffff !important;
     --ink: #1f2937 !important;
     --muted: #667085 !important;
@@ -3013,6 +3038,8 @@ body.dark-mode .history-summary-card {
   html,
   body {
     background: #ffffff !important;
+    background-color: #ffffff !important;
+    color: #1f2937 !important;
     width: 8.5in;
     min-height: 11in;
     margin: 0;
@@ -3021,6 +3048,27 @@ body.dark-mode .history-summary-card {
     box-sizing: border-box;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
+  }
+
+  body.printing .report-template,
+  #reportTemplate,
+  .print-wrapper,
+  .print-body-content {
+    color-scheme: light !important;
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    color: #1f2937 !important;
+    --bg: #ffffff !important;
+    --panel: #ffffff !important;
+    --ink: #1f2937 !important;
+    --muted: #667085 !important;
+    --line: #d6d9e0 !important;
+    --field: #f8fafc !important;
+    --field-border: #d2d6dc !important;
+    --action: #3d70b2 !important;
+    --action-hover: #335c96 !important;
+    --secondary: #f4f6f9 !important;
+    --danger: #d14343 !important;
   }
 
   body.printing .app-shell,

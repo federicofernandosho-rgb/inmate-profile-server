@@ -1968,7 +1968,7 @@ function generatePdfReport() {
   const middleName = fields.middleName.value || '';
   const lastName = fields.lastName.value || '';
   const alias = fields.alias.value || 'None';
-  const dobRaw = fields.dob.value || '';
+  const dobRaw = fields.dob.value || record.dob || '';
   const age = fields.age.value || 'N/A';
   const address = fields.address.value || 'N/A';
   const affiliation = fields.affiliation.value || 'None';
@@ -1979,13 +1979,21 @@ function generatePdfReport() {
   // Format DOB to Medium Date (e.g., Apr 16, 1975)
   let dobMedium = 'N/A';
   if (dobRaw) {
-    const dobDate = new Date(dobRaw + 'T00:00:00');
-    if (!isNaN(dobDate.getTime())) {
+    let dobDate = null;
+    if (typeof dobRaw === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dobRaw.trim())) {
+      dobDate = new Date(dobRaw.trim() + 'T00:00:00');
+    } else {
+      dobDate = new Date(dobRaw);
+    }
+
+    if (dobDate && !isNaN(dobDate.getTime())) {
       dobMedium = dobDate.toLocaleDateString('en-US', {
         month: 'short',
         day: 'numeric',
         year: 'numeric'
       });
+    } else if (typeof dobRaw === 'string' && dobRaw.trim()) {
+      dobMedium = dobRaw.trim();
     }
   }
 

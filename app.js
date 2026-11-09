@@ -80,17 +80,28 @@ const reportTemplate = document.querySelector("#reportTemplate");
 const usersDialog = document.querySelector("#usersDialog");
 const userList = document.querySelector("#userList");
 const userMessage = document.querySelector("#userMessage");
-const userForm = document.querySelector("#createUserForm");
-const userFormTitle = document.querySelector("#userFormTitle");
-const editUserIdInput = document.querySelector("#editUserId");
-const newUsernameInput = document.querySelector("#newUsername");
-const newFullNameInput = document.querySelector("#newFullName");
-const newUserRoleSelect = document.querySelector("#newUserRole");
-const newPasswordInput = document.querySelector("#newPassword");
-const confirmPasswordInput = document.querySelector("#confirmPassword");
-const userSubmitBtn = document.querySelector("#userSubmitBtn");
-const cancelUserEditBtn = document.querySelector("#cancelUserEditBtn");
 const userCountBadge = document.querySelector("#userCountBadge");
+const openAddUserBtn = document.querySelector("#openAddUserBtn");
+
+// User Editor Popup Modal Elements
+const userEditorDialog = document.querySelector("#userEditorDialog");
+const userEditorForm = document.querySelector("#userEditorForm");
+const userEditorTitle = document.querySelector("#userEditorTitle");
+const userEditorSubtitle = document.querySelector("#userEditorSubtitle");
+const editUserIdInput = document.querySelector("#editUserId");
+const editorUsernameInput = document.querySelector("#editorUsername");
+const editorFullNameInput = document.querySelector("#editorFullName");
+const editorRoleSelect = document.querySelector("#editorRole");
+const editorPasswordInput = document.querySelector("#editorPassword");
+const editorConfirmPasswordInput = document.querySelector("#editorConfirmPassword");
+const passwordRequiredStar = document.querySelector("#passwordRequiredStar");
+const confirmRequiredStar = document.querySelector("#confirmRequiredStar");
+const editorMessage = document.querySelector("#editorMessage");
+const saveUserEditorBtn = document.querySelector("#saveUserEditorBtn");
+const cancelUserEditorBtn = document.querySelector("#cancelUserEditorBtn");
+const closeUserEditorModal = document.querySelector("#closeUserEditorModal");
+
+// User Action Confirmation Dialog Elements
 const userConfirmDialog = document.querySelector("#userConfirmDialog");
 const userConfirmIcon = document.querySelector("#userConfirmIcon");
 const userConfirmTitle = document.querySelector("#userConfirmTitle");
@@ -98,6 +109,7 @@ const userConfirmMessage = document.querySelector("#userConfirmMessage");
 const userConfirmWarning = document.querySelector("#userConfirmWarning");
 const userConfirmCancelBtn = document.querySelector("#userConfirmCancelBtn");
 const userConfirmActionBtn = document.querySelector("#userConfirmActionBtn");
+
 const admissionDialog = document.querySelector("#admissionDialog");
 const dischargeDialog = document.querySelector("#dischargeDialog");
 const admissionForm = document.querySelector("#admissionForm");
@@ -123,8 +135,12 @@ firstUserForm.addEventListener("submit", handleFirstUserCreate);
 manageUsersButton.addEventListener("click", openUsersModal);
 logoutButton.addEventListener("click", logout);
 document.querySelector("#closeUsersModal").addEventListener("click", () => usersDialog.close());
-userForm.addEventListener("submit", handleSaveUser);
-cancelUserEditBtn.addEventListener("click", cancelUserEdit);
+
+if (openAddUserBtn) openAddUserBtn.addEventListener("click", openCreateUserModal);
+if (closeUserEditorModal) closeUserEditorModal.addEventListener("click", () => userEditorDialog.close());
+if (cancelUserEditorBtn) cancelUserEditorBtn.addEventListener("click", () => userEditorDialog.close());
+if (userEditorForm) userEditorForm.addEventListener("submit", handleSaveUser);
+
 document.querySelector("#previousRecord").addEventListener("click", showPreviousRecord);
 document.querySelector("#nextRecord").addEventListener("click", showNextRecord);
 document.querySelector("#newRecord").addEventListener("click", createNewRecord);
@@ -135,6 +151,7 @@ document.querySelector("#deleteRecord").addEventListener("click", deleteRecord);
 document.querySelector("#generatePdf").addEventListener("click", generatePdfReport);
 document.querySelector("#viewHistory").addEventListener("click", () => {
   const record = records[currentIndex];
+  updateHistoryModalHeader(record);
   renderMainHistoryTimeline(record ? (record.statusHistory || []) : []);
   historyDialog.showModal();
 });
@@ -620,20 +637,73 @@ function showUserConfirmModal({ title, message, warning, icon = "⚠", actionTex
 
 let cachedUsers = [];
 
+function openCreateUserModal() {
+  if (!canManageUsers()) return;
+  editUserIdInput.value = "";
+  userEditorForm.reset();
+  editorRoleSelect.disabled = false;
+  editorRoleSelect.title = "";
+  userEditorTitle.textContent = "Add New User";
+  userEditorSubtitle.textContent = "Enter account credentials and assign access level.";
+  saveUserEditorBtn.textContent = "Save Changes";
+  editorPasswordInput.placeholder = "Minimum 4 characters";
+  editorConfirmPasswordInput.placeholder = "Re-enter password";
+  if (passwordRequiredStar) passwordRequiredStar.style.display = "inline";
+  if (confirmRequiredStar) confirmRequiredStar.style.display = "inline";
+  editorMessage.textContent = "";
+  editorMessage.className = "message";
+  userEditorDialog.showModal();
+  editorUsernameInput.focus();
+}
+
+function openEditUserModal(user) {
+  if (!canManageUsers()) return;
+  editUserIdInput.value = user.id;
+  editorUsernameInput.value = user.username;
+  editorFullNameInput.value = user.fullName || "";
+  editorRoleSelect.value = user.role;
+
+  // Protect current admin from accidentally removing own admin privileges
+  if (currentUser && String(currentUser.id) === String(user.id)) {
+    editorRoleSelect.disabled = true;
+    editorRoleSelect.title = "You cannot remove your own administrator privileges.";
+  } else {
+    editorRoleSelect.disabled = false;
+    editorRoleSelect.title = "";
+  }
+
+  editorPasswordInput.value = "";
+  editorConfirmPasswordInput.value = "";
+  editorPasswordInput.placeholder = "Leave blank to keep current password";
+  editorConfirmPasswordInput.placeholder = "Confirm new password if changing";
+  if (passwordRequiredStar) passwordRequiredStar.style.display = "none";
+  if (confirmRequiredStar) confirmRequiredStar.style.display = "none";
+
+  userEditorTitle.textContent = `Edit User: ${user.username}`;
+  userEditorSubtitle.textContent = "Update account credentials and access role.";
+  saveUserEditorBtn.textContent = "Save Changes";
+  editorMessage.textContent = "";
+  editorMessage.className = "message";
+  userEditorDialog.showModal();
+  editorUsernameInput.focus();
+}
+
 async function handleSaveUser(event) {
   event.preventDefault();
   if (!canManageUsers()) return;
-  setUserMessage("", "");
+  editorMessage.textContent = "";
+  editorMessage.className = "message";
 
   const editingId = editUserIdInput.value.trim();
-  const username = newUsernameInput.value.trim();
-  const fullName = newFullNameInput.value.trim();
-  const role = newUserRoleSelect.value;
-  const password = newPasswordInput.value;
-  const confirmPw = confirmPasswordInput.value;
+  const username = editorUsernameInput.value.trim();
+  const fullName = editorFullNameInput.value.trim();
+  const role = editorRoleSelect.value;
+  const password = editorPasswordInput.value;
+  const confirmPw = editorConfirmPasswordInput.value;
 
   if (!username) {
-    setUserMessage("Username is required.", "error");
+    editorMessage.textContent = "Username is required.";
+    editorMessage.className = "message message-error";
     return;
   }
 
@@ -641,30 +711,34 @@ async function handleSaveUser(event) {
   if (!editingId) {
     // Creating a new user: password is required
     if (!password || password.length < 4) {
-      setUserMessage("Password must be at least 4 characters long.", "error");
+      editorMessage.textContent = "Password must be at least 4 characters long.";
+      editorMessage.className = "message message-error";
       return;
     }
     if (password !== confirmPw) {
-      setUserMessage("Passwords do not match.", "error");
+      editorMessage.textContent = "Passwords do not match.";
+      editorMessage.className = "message message-error";
       return;
     }
   } else {
     // Editing an existing user: password is optional
     if (password) {
       if (password.length < 4) {
-        setUserMessage("New password must be at least 4 characters long.", "error");
+        editorMessage.textContent = "New password must be at least 4 characters long.";
+        editorMessage.className = "message message-error";
         return;
       }
       if (password !== confirmPw) {
-        setUserMessage("Passwords do not match.", "error");
+        editorMessage.textContent = "Passwords do not match.";
+        editorMessage.className = "message message-error";
         return;
       }
     }
   }
 
   try {
-    userSubmitBtn.disabled = true;
-    userSubmitBtn.textContent = "Saving...";
+    saveUserEditorBtn.disabled = true;
+    saveUserEditorBtn.textContent = "Saving...";
 
     if (!editingId) {
       // Create user
@@ -672,8 +746,8 @@ async function handleSaveUser(event) {
         method: "POST",
         body: { username, fullName, role, password }
       });
-      setUserMessage(`User '${username}' created successfully.`, "success");
-      cancelUserEdit();
+      userEditorDialog.close();
+      setUserMessage(`User account '${username}' created successfully.`, "success");
       await renderUserList();
     } else {
       // Update existing user
@@ -690,62 +764,22 @@ async function handleSaveUser(event) {
         currentUser.fullName = fullName;
         currentUser.role = role;
       }
+      userEditorDialog.close();
       setUserMessage(`Changes to user '${username}' saved successfully.`, "success");
-      cancelUserEdit();
       await renderUserList();
     }
   } catch (error) {
-    setUserMessage(error.message, "error");
+    editorMessage.textContent = error.message;
+    editorMessage.className = "message message-error";
   } finally {
-    userSubmitBtn.disabled = false;
-    userSubmitBtn.textContent = "Save Changes";
+    saveUserEditorBtn.disabled = false;
+    saveUserEditorBtn.textContent = "Save Changes";
   }
-}
-
-function startEditUser(user) {
-  setUserMessage("", "");
-  editUserIdInput.value = user.id;
-  newUsernameInput.value = user.username;
-  newFullNameInput.value = user.fullName || "";
-  newUserRoleSelect.value = user.role;
-
-  // Protect current admin from accidentally removing own admin privileges
-  if (currentUser && String(currentUser.id) === String(user.id)) {
-    newUserRoleSelect.disabled = true;
-    newUserRoleSelect.title = "You cannot remove your own administrator privileges.";
-  } else {
-    newUserRoleSelect.disabled = false;
-    newUserRoleSelect.title = "";
-  }
-
-  newPasswordInput.value = "";
-  confirmPasswordInput.value = "";
-  newPasswordInput.placeholder = "Leave blank to keep current password";
-  confirmPasswordInput.placeholder = "Confirm new password if changing";
-
-  userFormTitle.textContent = `Edit User: ${user.username}`;
-  userSubmitBtn.textContent = "Save Changes";
-  cancelUserEditBtn.style.display = "inline-flex";
-
-  newUsernameInput.focus();
-}
-
-function cancelUserEdit() {
-  editUserIdInput.value = "";
-  userForm.reset();
-  newUserRoleSelect.disabled = false;
-  newUserRoleSelect.title = "";
-  newPasswordInput.placeholder = "Min. 4 characters";
-  confirmPasswordInput.placeholder = "Re-enter password";
-  userFormTitle.textContent = "Add New User";
-  userSubmitBtn.textContent = "Save Changes";
-  cancelUserEditBtn.style.display = "none";
 }
 
 async function openUsersModal() {
   if (!canManageUsers()) return;
   setUserMessage("", "");
-  cancelUserEdit();
   await renderUserList();
   usersDialog.showModal();
 }
@@ -820,7 +854,7 @@ async function renderUserList() {
   userList.querySelectorAll("[data-user-edit]").forEach(btn => {
     btn.addEventListener("click", () => {
       const user = cachedUsers.find(u => String(u.id) === btn.dataset.userEdit);
-      if (user) startEditUser(user);
+      if (user) openEditUserModal(user);
     });
   });
 
@@ -1662,15 +1696,17 @@ function renderTattoos(tattoos) {
   tattoos.forEach((tat, index) => {
     const card = document.createElement("div");
     card.className = "tattoo-card";
-    card.style.cssText = "position:relative; border:1px solid var(--border-color); padding:4px; border-radius:4px; background:var(--bg-main); text-align:center; overflow:hidden;";
+    card.style.cssText = "position:relative; padding:4px; border-radius:6px; text-align:center; overflow:hidden;";
 
     card.innerHTML = `
-      <img src="${tat.src}" alt="Tattoo file" style="width:100%; height:80px; object-fit:cover; border-radius:2px; cursor:pointer;">
-      <div class="tattoo-desc" style="font-size:13px; font-weight:600; color:#111111; background:#ffffff; text-overflow:ellipsis; overflow:hidden; white-space:nowrap; margin-top:4px; padding:3px 4px; border-radius:2px;">${escapeHtml(tat.description)}</div>
+      <img src="${tat.src}" alt="Tattoo file" style="width:100%; height:80px; object-fit:cover; border-radius:4px; cursor:pointer;">
+      <div class="tattoo-desc" title="${escapeHtml(tat.description || '')}">${escapeHtml(tat.description || "No description")}</div>
       <button type="button" class="danger-button" style="position:absolute; top:2px; right:2px; padding:2px 6px; font-size:9px; line-height:1;" ${canEdit() ? "" : "disabled"}>&times;</button>
     `;
 
     card.querySelector("img").addEventListener("click", () => openTattooModal(tat));
+    const descEl = card.querySelector(".tattoo-desc");
+    if (descEl) descEl.addEventListener("click", () => openTattooModal(tat));
     card.querySelector("button").addEventListener("click", (e) => {
       e.stopPropagation();
       if (!canEdit()) return;
@@ -1808,7 +1844,21 @@ function formatMediumDate(value) {
   }).format(date);
 }
 
+function updateHistoryModalHeader(record) {
+  const subtitle = document.querySelector("#historySubtitle");
+  if (!subtitle) return;
+  if (!record) {
+    subtitle.textContent = "Status & date history for this inmate";
+    return;
+  }
+  const nameParts = [record.firstName, record.middleName, record.lastName].filter(Boolean);
+  const fullName = nameParts.join(" ").trim() || "Inmate";
+  const idText = record.inmateId ? `ID #${record.inmateId}` : "";
+  subtitle.textContent = idText ? `${fullName} - ${idText}` : fullName;
+}
+
 function renderMainHistoryTimeline(historyArray) {
+  updateHistoryModalHeader(records[currentIndex]);
   mainHistoryTimeline.innerHTML = "";
 
   let tableHtml = `

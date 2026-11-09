@@ -5,7 +5,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Belize Central Prison Kolbe Foundation</title>
-  <link rel="stylesheet" href="styles.css?v=5">
+  <link rel="stylesheet" href="styles.css?v=6">
 </head>
 
 <body>
@@ -296,51 +296,15 @@
       <header class="modal-header">
         <div>
           <h2>User Management</h2>
-          <p>Create and edit users, manage passwords, and set access levels.</p>
+          <p>Manage user accounts, credentials, and access levels.</p>
         </div>
-        <button type="button" class="icon-button" id="closeUsersModal" aria-label="Close users modal">X</button>
+        <div class="user-header-actions">
+          <button type="button" class="add-user-header-btn" id="openAddUserBtn">+ Add New User</button>
+          <button type="button" class="icon-button" id="closeUsersModal" aria-label="Close users modal">X</button>
+        </div>
       </header>
 
       <section class="modal-body">
-        <form id="createUserForm" class="user-form">
-          <input type="hidden" id="editUserId" value="">
-          <div class="user-form-header">
-            <h3 id="userFormTitle">Add New User</h3>
-            <button type="button" id="cancelUserEditBtn" class="cancel-edit-btn" style="display: none;">Cancel Edit</button>
-          </div>
-
-          <div class="user-form-grid">
-            <label class="login-field">
-              <span>Username</span>
-              <input id="newUsername" type="text" autocomplete="off" required>
-            </label>
-            <label class="login-field">
-              <span>Full Name</span>
-              <input id="newFullName" type="text" autocomplete="off" placeholder="e.g. John Doe">
-            </label>
-            <label class="login-field">
-              <span>Access Role</span>
-              <select id="newUserRole">
-                <option value="admin">Super Admin</option>
-                <option value="entry">Data Entry</option>
-                <option value="readonly">Read Only</option>
-              </select>
-            </label>
-            <label class="login-field" id="newPasswordGroup">
-              <span id="newPasswordLabel">Password</span>
-              <input id="newPassword" type="password" autocomplete="new-password" placeholder="Min. 4 characters">
-            </label>
-            <label class="login-field" id="confirmPasswordGroup">
-              <span id="confirmPasswordLabel">Confirm Password</span>
-              <input id="confirmPassword" type="password" autocomplete="new-password" placeholder="Re-enter password">
-            </label>
-          </div>
-
-          <div class="user-form-actions">
-            <button type="submit" id="userSubmitBtn" class="save-changes-btn">Save Changes</button>
-          </div>
-        </form>
-
         <p class="message" id="userMessage" role="status" aria-live="polite"></p>
 
         <div class="user-management-header">
@@ -348,6 +312,61 @@
           <span class="user-count-badge" id="userCountBadge"></span>
         </div>
         <div class="user-list" id="userList"></div>
+      </section>
+    </div>
+  </dialog>
+
+  <!-- User Editor Modal Popup (Create & Edit User) -->
+  <dialog id="userEditorDialog" class="users-dialog user-editor-dialog">
+    <div class="modal-shell">
+      <header class="modal-header">
+        <div>
+          <h2 id="userEditorTitle">Add New User</h2>
+          <p id="userEditorSubtitle">Enter account credentials and assign access level.</p>
+        </div>
+        <button type="button" class="icon-button" id="closeUserEditorModal" aria-label="Close modal">X</button>
+      </header>
+
+      <section class="modal-body">
+        <form id="userEditorForm" class="user-editor-form">
+          <input type="hidden" id="editUserId" value="">
+
+          <div class="editor-field-group">
+            <label for="editorUsername" class="editor-label">Username <span class="required-star">*</span></label>
+            <input id="editorUsername" type="text" class="editor-input" autocomplete="off" required placeholder="Enter username">
+          </div>
+
+          <div class="editor-field-group">
+            <label for="editorFullName" class="editor-label">Full Name</label>
+            <input id="editorFullName" type="text" class="editor-input" autocomplete="off" placeholder="e.g. John Doe">
+          </div>
+
+          <div class="editor-field-group">
+            <label for="editorRole" class="editor-label">Access Role <span class="required-star">*</span></label>
+            <select id="editorRole" class="editor-select">
+              <option value="admin">Super Admin</option>
+              <option value="entry">Data Entry</option>
+              <option value="readonly">Read Only</option>
+            </select>
+          </div>
+
+          <div class="editor-field-group" id="editorPasswordGroup">
+            <label for="editorPassword" class="editor-label" id="editorPasswordLabel">Password <span class="required-star" id="passwordRequiredStar">*</span></label>
+            <input id="editorPassword" type="password" class="editor-input" autocomplete="new-password" placeholder="Minimum 4 characters">
+          </div>
+
+          <div class="editor-field-group" id="editorConfirmPasswordGroup">
+            <label for="editorConfirmPassword" class="editor-label" id="editorConfirmPasswordLabel">Confirm Password <span class="required-star" id="confirmRequiredStar">*</span></label>
+            <input id="editorConfirmPassword" type="password" class="editor-input" autocomplete="new-password" placeholder="Re-enter password">
+          </div>
+
+          <p class="message" id="editorMessage" role="status" aria-live="polite"></p>
+
+          <div class="editor-actions">
+            <button type="button" class="editor-btn-cancel" id="cancelUserEditorBtn">Cancel</button>
+            <button type="submit" class="editor-btn-save" id="saveUserEditorBtn">Save Changes</button>
+          </div>
+        </form>
       </section>
     </div>
   </dialog>
@@ -597,7 +616,7 @@
       <header class="modal-header">
         <div>
           <h2>Incarceration History</h2>
-          <p>Status &amp; date history for this inmate</p>
+          <p id="historySubtitle">Status &amp; date history for this inmate</p>
         </div>
         <button type="button" class="icon-button" id="closeHistoryModal" aria-label="Close history">X</button>
       </header>
@@ -609,7 +628,7 @@
     </div>
   </dialog>
 
-  <script src="app.js?v=9"></script>
+  <script src="app.js?v=10"></script>
 </body>
 
 </html>

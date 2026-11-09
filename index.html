@@ -5,7 +5,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Belize Central Prison Kolbe Foundation</title>
-  <link rel="stylesheet" href="styles.css?v=4">
+  <link rel="stylesheet" href="styles.css?v=5">
 </head>
 
 <body>
@@ -295,35 +295,59 @@
     <div class="modal-shell">
       <header class="modal-header">
         <div>
-          <h2>User Access</h2>
-          <p>Create users and assign access level.</p>
+          <h2>User Management</h2>
+          <p>Create and edit users, manage passwords, and set access levels.</p>
         </div>
         <button type="button" class="icon-button" id="closeUsersModal" aria-label="Close users modal">X</button>
       </header>
 
       <section class="modal-body">
         <form id="createUserForm" class="user-form">
-          <label class="login-field">
-            <span>Username</span>
-            <input id="newUsername" type="text" autocomplete="off">
-          </label>
-          <label class="login-field">
-            <span>Password</span>
-            <input id="newPassword" type="password" autocomplete="new-password">
-          </label>
-          <label class="login-field">
-            <span>Access</span>
-            <select id="newUserRole">
-              <option value="admin">Super Admin</option>
-              <option value="entry">Data Entry</option>
-              <option value="readonly">Read Only</option>
-            </select>
-          </label>
-          <button type="submit">Create User</button>
+          <input type="hidden" id="editUserId" value="">
+          <div class="user-form-header">
+            <h3 id="userFormTitle">Add New User</h3>
+            <button type="button" id="cancelUserEditBtn" class="cancel-edit-btn" style="display: none;">Cancel Edit</button>
+          </div>
+
+          <div class="user-form-grid">
+            <label class="login-field">
+              <span>Username</span>
+              <input id="newUsername" type="text" autocomplete="off" required>
+            </label>
+            <label class="login-field">
+              <span>Full Name</span>
+              <input id="newFullName" type="text" autocomplete="off" placeholder="e.g. John Doe">
+            </label>
+            <label class="login-field">
+              <span>Access Role</span>
+              <select id="newUserRole">
+                <option value="admin">Super Admin</option>
+                <option value="entry">Data Entry</option>
+                <option value="readonly">Read Only</option>
+              </select>
+            </label>
+            <label class="login-field" id="newPasswordGroup">
+              <span id="newPasswordLabel">Password</span>
+              <input id="newPassword" type="password" autocomplete="new-password" placeholder="Min. 4 characters">
+            </label>
+            <label class="login-field" id="confirmPasswordGroup">
+              <span id="confirmPasswordLabel">Confirm Password</span>
+              <input id="confirmPassword" type="password" autocomplete="new-password" placeholder="Re-enter password">
+            </label>
+          </div>
+
+          <div class="user-form-actions">
+            <button type="submit" id="userSubmitBtn" class="save-changes-btn">Save Changes</button>
+          </div>
         </form>
 
-        <div class="user-list" id="userList"></div>
         <p class="message" id="userMessage" role="status" aria-live="polite"></p>
+
+        <div class="user-management-header">
+          <h3>Existing User Accounts</h3>
+          <span class="user-count-badge" id="userCountBadge"></span>
+        </div>
+        <div class="user-list" id="userList"></div>
       </section>
     </div>
   </dialog>
@@ -369,6 +393,20 @@
       <div class="confirm-actions">
         <button type="button" class="secondary" id="deleteCancelBtn">Cancel</button>
         <button type="button" class="danger-button" id="deleteConfirmBtn">Yes, Delete</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- User Action Confirmation Dialog -->
+  <dialog id="userConfirmDialog" class="confirm-dialog">
+    <div class="confirm-modal">
+      <div class="confirm-icon" id="userConfirmIcon">&#9888;</div>
+      <h2 class="confirm-title" id="userConfirmTitle">Disable User?</h2>
+      <p class="confirm-message" id="userConfirmMessage">Are you sure you want to disable this user account?</p>
+      <p class="confirm-warning" id="userConfirmWarning">The user will be immediately prevented from logging into the application.</p>
+      <div class="confirm-actions">
+        <button type="button" class="secondary" id="userConfirmCancelBtn">Cancel</button>
+        <button type="button" class="danger-button" id="userConfirmActionBtn">Confirm</button>
       </div>
     </div>
   </dialog>
@@ -571,7 +609,7 @@
     </div>
   </dialog>
 
-  <script src="app.js?v=8"></script>
+  <script src="app.js?v=9"></script>
 </body>
 
 </html>

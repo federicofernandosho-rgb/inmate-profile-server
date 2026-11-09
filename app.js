@@ -80,6 +80,24 @@ const reportTemplate = document.querySelector("#reportTemplate");
 const usersDialog = document.querySelector("#usersDialog");
 const userList = document.querySelector("#userList");
 const userMessage = document.querySelector("#userMessage");
+const userForm = document.querySelector("#createUserForm");
+const userFormTitle = document.querySelector("#userFormTitle");
+const editUserIdInput = document.querySelector("#editUserId");
+const newUsernameInput = document.querySelector("#newUsername");
+const newFullNameInput = document.querySelector("#newFullName");
+const newUserRoleSelect = document.querySelector("#newUserRole");
+const newPasswordInput = document.querySelector("#newPassword");
+const confirmPasswordInput = document.querySelector("#confirmPassword");
+const userSubmitBtn = document.querySelector("#userSubmitBtn");
+const cancelUserEditBtn = document.querySelector("#cancelUserEditBtn");
+const userCountBadge = document.querySelector("#userCountBadge");
+const userConfirmDialog = document.querySelector("#userConfirmDialog");
+const userConfirmIcon = document.querySelector("#userConfirmIcon");
+const userConfirmTitle = document.querySelector("#userConfirmTitle");
+const userConfirmMessage = document.querySelector("#userConfirmMessage");
+const userConfirmWarning = document.querySelector("#userConfirmWarning");
+const userConfirmCancelBtn = document.querySelector("#userConfirmCancelBtn");
+const userConfirmActionBtn = document.querySelector("#userConfirmActionBtn");
 const admissionDialog = document.querySelector("#admissionDialog");
 const dischargeDialog = document.querySelector("#dischargeDialog");
 const admissionForm = document.querySelector("#admissionForm");
@@ -105,7 +123,8 @@ firstUserForm.addEventListener("submit", handleFirstUserCreate);
 manageUsersButton.addEventListener("click", openUsersModal);
 logoutButton.addEventListener("click", logout);
 document.querySelector("#closeUsersModal").addEventListener("click", () => usersDialog.close());
-document.querySelector("#createUserForm").addEventListener("submit", handleCreateUser);
+userForm.addEventListener("submit", handleSaveUser);
+cancelUserEditBtn.addEventListener("click", cancelUserEdit);
 document.querySelector("#previousRecord").addEventListener("click", showPreviousRecord);
 document.querySelector("#nextRecord").addEventListener("click", showNextRecord);
 document.querySelector("#newRecord").addEventListener("click", createNewRecord);
@@ -550,123 +569,328 @@ async function handleFirstUserCreate(event) {
   }
 }
 
-async function handleCreateUser(event) {
+function setUserMessage(msg, type = "info") {
+  userMessage.textContent = msg;
+  userMessage.className = "message" + (type ? ` message-${type}` : "");
+}
+
+function showUserConfirmModal({ title, message, warning, icon = "⚠", actionText = "Confirm", isDanger = true }) {
+  return new Promise((resolve) => {
+    if (!userConfirmDialog) {
+      resolve(window.confirm(`${message}\n\n${warning || ""}`));
+      return;
+    }
+    userConfirmIcon.innerHTML = icon;
+    userConfirmTitle.textContent = title;
+    userConfirmMessage.textContent = message;
+    userConfirmWarning.textContent = warning || "";
+    userConfirmActionBtn.textContent = actionText;
+    userConfirmActionBtn.className = isDanger ? "danger-button" : "primary-button";
+
+    const cleanup = () => {
+      userConfirmActionBtn.removeEventListener("click", onConfirm);
+      userConfirmCancelBtn.removeEventListener("click", onCancel);
+      userConfirmDialog.removeEventListener("close", onClose);
+    };
+
+    const onConfirm = () => {
+      cleanup();
+      userConfirmDialog.close();
+      resolve(true);
+    };
+
+    const onCancel = () => {
+      cleanup();
+      userConfirmDialog.close();
+      resolve(false);
+    };
+
+    const onClose = () => {
+      cleanup();
+      resolve(false);
+    };
+
+    userConfirmActionBtn.addEventListener("click", onConfirm);
+    userConfirmCancelBtn.addEventListener("click", onCancel);
+    userConfirmDialog.addEventListener("close", onClose);
+
+    userConfirmDialog.showModal();
+  });
+}
+
+let cachedUsers = [];
+
+async function handleSaveUser(event) {
   event.preventDefault();
   if (!canManageUsers()) return;
-  userMessage.textContent = "";
+  setUserMessage("", "");
+
+  const editingId = editUserIdInput.value.trim();
+  const username = newUsernameInput.value.trim();
+  const fullName = newFullNameInput.value.trim();
+  const role = newUserRoleSelect.value;
+  const password = newPasswordInput.value;
+  const confirmPw = confirmPasswordInput.value;
+
+  if (!username) {
+    setUserMessage("Username is required.", "error");
+    return;
+  }
+
+  // Password validation
+  if (!editingId) {
+    // Creating a new user: password is required
+    if (!password || password.length < 4) {
+      setUserMessage("Password must be at least 4 characters long.", "error");
+      return;
+    }
+    if (password !== confirmPw) {
+      setUserMessage("Passwords do not match.", "error");
+      return;
+    }
+  } else {
+    // Editing an existing user: password is optional
+    if (password) {
+      if (password.length < 4) {
+        setUserMessage("New password must be at least 4 characters long.", "error");
+        return;
+      }
+      if (password !== confirmPw) {
+        setUserMessage("Passwords do not match.", "error");
+        return;
+      }
+    }
+  }
 
   try {
-    await apiFetch("/api/users", {
-      method: "POST",
-      body: {
-        username: document.querySelector("#newUsername").value.trim(),
-        password: document.querySelector("#newPassword").value,
-        role: document.querySelector("#newUserRole").value
+    userSubmitBtn.disabled = true;
+    userSubmitBtn.textContent = "Saving...";
+
+    if (!editingId) {
+      // Create user
+      await apiFetch("/api/users", {
+        method: "POST",
+        body: { username, fullName, role, password }
+      });
+      setUserMessage(`User '${username}' created successfully.`, "success");
+      cancelUserEdit();
+      await renderUserList();
+    } else {
+      // Update existing user
+      const body = { username, fullName, role };
+      if (password) {
+        body.password = password;
       }
-    });
-    document.querySelector("#createUserForm").reset();
-    userMessage.textContent = "User created.";
-    await renderUserList();
+      await apiFetch(`/api/users/${encodeURIComponent(editingId)}`, {
+        method: "PUT",
+        body
+      });
+      if (currentUser && String(currentUser.id) === String(editingId)) {
+        currentUser.username = username;
+        currentUser.fullName = fullName;
+        currentUser.role = role;
+      }
+      setUserMessage(`Changes to user '${username}' saved successfully.`, "success");
+      cancelUserEdit();
+      await renderUserList();
+    }
   } catch (error) {
-    userMessage.textContent = error.message;
+    setUserMessage(error.message, "error");
+  } finally {
+    userSubmitBtn.disabled = false;
+    userSubmitBtn.textContent = "Save Changes";
   }
+}
+
+function startEditUser(user) {
+  setUserMessage("", "");
+  editUserIdInput.value = user.id;
+  newUsernameInput.value = user.username;
+  newFullNameInput.value = user.fullName || "";
+  newUserRoleSelect.value = user.role;
+
+  // Protect current admin from accidentally removing own admin privileges
+  if (currentUser && String(currentUser.id) === String(user.id)) {
+    newUserRoleSelect.disabled = true;
+    newUserRoleSelect.title = "You cannot remove your own administrator privileges.";
+  } else {
+    newUserRoleSelect.disabled = false;
+    newUserRoleSelect.title = "";
+  }
+
+  newPasswordInput.value = "";
+  confirmPasswordInput.value = "";
+  newPasswordInput.placeholder = "Leave blank to keep current password";
+  confirmPasswordInput.placeholder = "Confirm new password if changing";
+
+  userFormTitle.textContent = `Edit User: ${user.username}`;
+  userSubmitBtn.textContent = "Save Changes";
+  cancelUserEditBtn.style.display = "inline-flex";
+
+  newUsernameInput.focus();
+}
+
+function cancelUserEdit() {
+  editUserIdInput.value = "";
+  userForm.reset();
+  newUserRoleSelect.disabled = false;
+  newUserRoleSelect.title = "";
+  newPasswordInput.placeholder = "Min. 4 characters";
+  confirmPasswordInput.placeholder = "Re-enter password";
+  userFormTitle.textContent = "Add New User";
+  userSubmitBtn.textContent = "Save Changes";
+  cancelUserEditBtn.style.display = "none";
 }
 
 async function openUsersModal() {
   if (!canManageUsers()) return;
-  userMessage.textContent = "";
+  setUserMessage("", "");
+  cancelUserEdit();
   await renderUserList();
   usersDialog.showModal();
 }
 
 async function renderUserList() {
   const result = await apiFetch("/api/users");
+  cachedUsers = result.users || [];
   userList.innerHTML = "";
 
-  result.users.forEach(user => {
+  if (userCountBadge) {
+    userCountBadge.textContent = `${cachedUsers.length} user${cachedUsers.length === 1 ? "" : "s"}`;
+  }
+
+  const roleLabels = {
+    admin: "Super Admin",
+    entry: "Data Entry",
+    readonly: "Read Only"
+  };
+
+  const activeAdmins = cachedUsers.filter(u => u.role === "admin" && !u.disabled);
+
+  cachedUsers.forEach(user => {
     const row = document.createElement("div");
-    row.className = "user-row";
-    const disabled = user.id === currentUser.id && user.role === "admin" ? "disabled" : "";
+    const isSelf = currentUser && String(currentUser.id) === String(user.id);
+    const isLastAdmin = user.role === "admin" && !user.disabled && activeAdmins.length <= 1;
+    const cannotDisableOrDelete = isSelf || isLastAdmin;
+
+    let restrictionTitle = "";
+    if (isSelf) {
+      restrictionTitle = "You cannot disable or delete your own active administrator account.";
+    } else if (isLastAdmin) {
+      restrictionTitle = "Cannot disable or delete the last remaining active administrator account.";
+    }
+
+    row.className = `user-row ${user.disabled ? "is-disabled" : ""}`;
     row.innerHTML = `
-        <strong>${escapeHtml(user.username)}</strong>
-        <label class="role-editor">
-          <span>Role</span>
-          <select data-user-role="${escapeHtml(user.id)}" ${disabled}>
-            <option value="admin" ${user.role === "admin" ? "selected" : ""}>Super Admin</option>
-            <option value="entry" ${user.role === "entry" ? "selected" : ""}>Data Entry</option>
-            <option value="readonly" ${user.role === "readonly" ? "selected" : ""}>Read Only</option>
-          </select>
-        </label>
-        <label class="disabled-toggle" title="Toggle account active status">
-          <input type="checkbox" data-user-disabled="${escapeHtml(user.id)}" ${user.disabled ? "checked" : ""} ${disabled}>
-          Disabled
-        </label>
-        <button class="change-pw" data-user-pw="${escapeHtml(user.id)}" ${disabled}>Change Password</button>
-        <button class="delete-user" data-user-delete="${escapeHtml(user.id)}" ${disabled}>Delete</button>
-      `;
+      <div class="user-info">
+        <div class="user-title-line">
+          <strong class="user-username">${escapeHtml(user.username)}</strong>
+          ${user.fullName ? `<span class="user-fullname">(${escapeHtml(user.fullName)})</span>` : ""}
+          ${isSelf ? `<span class="user-self-pill">You</span>` : ""}
+        </div>
+        <div class="user-meta-line">
+          <span class="user-role-badge role-${escapeHtml(user.role)}">${escapeHtml(roleLabels[user.role] || user.role)}</span>
+          ${user.disabled
+            ? `<span class="user-status-badge status-disabled"><span class="status-dot"></span>Inactive / Disabled</span>`
+            : `<span class="user-status-badge status-active"><span class="status-dot"></span>Active</span>`
+          }
+        </div>
+      </div>
+      <div class="user-actions">
+        <button type="button" class="action-btn edit-user-btn" data-user-edit="${escapeHtml(user.id)}" title="Edit account details and password">
+          Edit
+        </button>
+        ${user.disabled
+          ? `<button type="button" class="action-btn activate-user-btn" data-user-toggle="${escapeHtml(user.id)}" title="Reactivate user account">
+               Reactivate
+             </button>`
+          : `<button type="button" class="action-btn disable-user-btn" data-user-toggle="${escapeHtml(user.id)}" ${cannotDisableOrDelete ? `disabled title="${escapeHtml(restrictionTitle)}"` : `title="Disable user account"`}>
+               Disable User
+             </button>`
+        }
+        <button type="button" class="action-btn delete-user-btn" data-user-delete="${escapeHtml(user.id)}" ${cannotDisableOrDelete ? `disabled title="${escapeHtml(restrictionTitle)}"` : `title="Delete user account"`}>
+          Delete
+        </button>
+      </div>
+    `;
     userList.append(row);
   });
 
-
-  userList.querySelectorAll("[data-user-role]").forEach(select => {
-    select.addEventListener("change", () => updateUserRole(select.dataset.userRole, select.value));
+  // Attach event handlers
+  userList.querySelectorAll("[data-user-edit]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const user = cachedUsers.find(u => String(u.id) === btn.dataset.userEdit);
+      if (user) startEditUser(user);
+    });
   });
 
-  // Delete user
+  userList.querySelectorAll("[data-user-toggle]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const user = cachedUsers.find(u => String(u.id) === btn.dataset.userToggle);
+      if (user) toggleUserDisabled(user);
+    });
+  });
+
   userList.querySelectorAll("[data-user-delete]").forEach(btn => {
-    btn.addEventListener("click", () => deleteUser(btn.dataset.userDelete));
-  });
-
-  // Change password
-  userList.querySelectorAll("[data-user-pw]").forEach(btn => {
-    btn.addEventListener("click", () => changeUserPassword(btn.dataset.userPw));
-  });
-
-  // Toggle disabled
-  userList.querySelectorAll("[data-user-disabled]").forEach(checkbox => {
-    checkbox.addEventListener("change", () => toggleUserDisabled(checkbox.dataset.userDisabled, checkbox.checked));
+    btn.addEventListener("click", () => {
+      const user = cachedUsers.find(u => String(u.id) === btn.dataset.userDelete);
+      if (user) confirmDeleteUser(user);
+    });
   });
 }
 
-
-async function deleteUser(userId) {
+async function toggleUserDisabled(user) {
   if (!canManageUsers()) return;
+  const willDisable = !user.disabled;
+  const confirmed = await showUserConfirmModal({
+    icon: willDisable ? "⚠️" : "👤",
+    title: willDisable ? "Disable User Account?" : "Reactivate User Account?",
+    message: willDisable
+      ? `Are you sure you want to disable the account for '${user.username}'?`
+      : `Are you sure you want to reactivate the account for '${user.username}'?`,
+    warning: willDisable
+      ? "Disabled users are immediately prevented from logging into the application. All existing records and activity history are preserved."
+      : "The user will immediately regain access to log in with their existing credentials and assigned role.",
+    actionText: willDisable ? "Disable User" : "Reactivate User",
+    isDanger: willDisable
+  });
+
+  if (!confirmed) return;
+
   try {
-    await apiFetch(`/api/users/${encodeURIComponent(userId)}`, { method: "DELETE" });
-    userMessage.textContent = "User deleted.";
+    await apiFetch(`/api/users/${encodeURIComponent(user.id)}/disable`, {
+      method: "PATCH",
+      body: { disabled: willDisable }
+    });
+    setUserMessage(`User '${user.username}' has been ${willDisable ? "disabled" : "reactivated"}.`, "success");
     await renderUserList();
   } catch (error) {
-    userMessage.textContent = error.message;
+    setUserMessage(error.message, "error");
   }
 }
 
-async function changeUserPassword(userId) {
+async function confirmDeleteUser(user) {
   if (!canManageUsers()) return;
-  const newPassword = prompt("Enter new password for the user:");
-  if (!newPassword) return;
-  try {
-    await apiFetch(`/api/users/${encodeURIComponent(userId)}/password`, {
-      method: "PATCH",
-      body: { password: newPassword }
-    });
-    userMessage.textContent = "Password updated.";
-    await renderUserList();
-  } catch (error) {
-    userMessage.textContent = error.message;
-  }
-}
+  const confirmed = await showUserConfirmModal({
+    icon: "⚠️",
+    title: "Delete User Account?",
+    message: `Are you sure you want to delete the user account '${user.username}'?`,
+    warning: "This action cannot be undone. All login credentials for this account will be permanently removed.",
+    actionText: "Delete Account",
+    isDanger: true
+  });
 
-async function toggleUserDisabled(userId, disabled) {
-  if (!canManageUsers()) return;
+  if (!confirmed) return;
+
   try {
-    await apiFetch(`/api/users/${encodeURIComponent(userId)}/disable`, {
-      method: "PATCH",
-      body: { disabled }
-    });
-    userMessage.textContent = "User status updated.";
+    await apiFetch(`/api/users/${encodeURIComponent(user.id)}`, { method: "DELETE" });
+    setUserMessage(`User account '${user.username}' deleted.`, "success");
+    if (editUserIdInput.value === String(user.id)) {
+      cancelUserEdit();
+    }
     await renderUserList();
   } catch (error) {
-    userMessage.textContent = error.message;
+    setUserMessage(error.message, "error");
   }
 }
 

@@ -76,7 +76,7 @@ async function handleApi(req, res, url) {
     }
 
     const body = await readBody(req);
-    const user = await createUser(body.username, body.password, "admin");
+    const user = await createUser(body.username, body.password, "admin", body.fullName);
     await insertUser(user);
     sendJson(res, 201, await loginPayload(user));
     return;
@@ -90,6 +90,12 @@ async function handleApi(req, res, url) {
     if (!user || !verifyPassword(body.password || "", user.password)) {
       await appendAudit({ action: "login_failed", username: String(body.username || "").trim(), userId: null, detail: "Invalid credentials", timestamp: new Date().toISOString() });
       sendJson(res, 401, { error: "Invalid username or password" });
+      return;
+    }
+
+    if (user.disabled) {
+      await appendAudit({ action: "login_failed", username: user.username, userId: user.id, detail: "Account disabled", timestamp: new Date().toISOString() });
+      sendJson(res, 403, { error: "This account has been disabled. Please contact an administrator." });
       return;
     }
 
@@ -205,17 +211,138 @@ async function handleApi(req, res, url) {
     const body = await readBody(req);
     const users = await getUsers();
     const username = String(body.username || "").trim();
+    const fullName = String(body.fullName || "").trim();
+
+    if (!username) {
+      sendJson(res, 400, { error: "Username is required" });
+      return;
+    }
 
     if (users.some(user => user.username.toLowerCase() === username.toLowerCase())) {
       sendJson(res, 409, { error: "That username already exists" });
       return;
     }
 
-    const user = await createUser(username, body.password, normalizeRole(body.role));
+    const user = await createUser(username, body.password, normalizeRole(body.role), fullName);
     await insertUser(user);
-    await appendAudit({ action: "create_user", username: currentUser.username, userId: currentUser.id, detail: `Created user '${username}' with role '${normalizeRole(body.role)}'`, timestamp: new Date().toISOString() });
+    await appendAudit({
+      action: "create_user",
+      username: currentUser.username,
+      userId: currentUser.id,
+      detail: `Created user '${username}' (${fullName ? fullName + ", " : ""}role: '${normalizeRole(body.role)}')`,
+      timestamp: new Date().toISOString()
+    });
     const updatedUsers = await getUsers();
     sendJson(res, 201, { user: publicUser(user), users: updatedUsers.map(publicUser) });
+    return;
+  }
+
+  const userUpdateMatch = url.pathname.match(/^\/api\/users\/([^/]+)$/);
+  if (req.method === "PUT" && userUpdateMatch) {
+    if (!canManageUsers(currentUser)) {
+      sendJson(res, 403, { error: "Admin access required" });
+      return;
+    }
+    const userId = userUpdateMatch[1];
+    const body = await readBody(req);
+    const users = await getUsers();
+    const targetUser = users.find(u => String(u.id) === userId);
+    if (!targetUser) {
+      sendJson(res, 404, { error: "User not found" });
+      return;
+    }
+
+    const newUsername = body.username !== undefined ? String(body.username || "").trim() : targetUser.username;
+    const newFullName = body.fullName !== undefined ? String(body.fullName || "").trim() : (targetUser.fullName || "");
+    const newRole = body.role !== undefined ? normalizeRole(body.role) : targetUser.role;
+    const newDisabled = body.disabled !== undefined ? Boolean(body.disabled) : Boolean(targetUser.disabled);
+
+    if (!newUsername) {
+      sendJson(res, 400, { error: "Username is required" });
+      return;
+    }
+
+    // Check username collision with other users
+    if (users.some(u => String(u.id) !== userId && u.username.toLowerCase() === newUsername.toLowerCase())) {
+      sendJson(res, 409, { error: "That username already exists" });
+      return;
+    }
+
+    const isSelf = String(currentUser.id) === userId;
+    if (isSelf && newDisabled) {
+      sendJson(res, 400, { error: "You cannot disable your own administrator account" });
+      return;
+    }
+    if (isSelf && newRole !== "admin") {
+      sendJson(res, 400, { error: "You cannot remove your own administrator privileges" });
+      return;
+    }
+
+    // If target user is an admin and is being demoted or disabled, ensure at least one active admin remains
+    if (targetUser.role === "admin" && (newRole !== "admin" || newDisabled)) {
+      const remainingActiveAdmins = users.filter(u =>
+        u.role === "admin" && !u.disabled && String(u.id) !== userId
+      ).length;
+      if (remainingActiveAdmins === 0) {
+        sendJson(res, 400, { error: "At least one active administrator account is required" });
+        return;
+      }
+    }
+
+    const updates = {
+      username: newUsername,
+      fullName: newFullName,
+      role: newRole,
+      disabled: newDisabled
+    };
+
+    let passwordChanged = false;
+    if (body.password) {
+      const pw = String(body.password);
+      if (pw.length < 4) {
+        sendJson(res, 400, { error: "Password must be at least 4 characters long" });
+        return;
+      }
+      updates.password = hashPassword(pw);
+      passwordChanged = true;
+    }
+
+    const updatedUser = await updateUser(userId, updates);
+
+    await appendAudit({
+      action: "update_user",
+      username: currentUser.username,
+      userId: currentUser.id,
+      detail: `Updated user '${newUsername}' (${newFullName ? newFullName + ", " : ""}role: ${newRole}, status: ${newDisabled ? "Disabled" : "Active"}${passwordChanged ? ", password updated" : ""})`,
+      timestamp: new Date().toISOString()
+    });
+
+    if (passwordChanged) {
+      await appendAudit({
+        action: "change_password",
+        username: currentUser.username,
+        userId: currentUser.id,
+        detail: `Changed password for user '${newUsername}'`,
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    if (Boolean(targetUser.disabled) !== newDisabled) {
+      await appendAudit({
+        action: newDisabled ? "disable_user" : "enable_user",
+        username: currentUser.username,
+        userId: currentUser.id,
+        detail: `${newDisabled ? "Disabled" : "Enabled"} user '${newUsername}'`,
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    const updatedUsers = await getUsers();
+    sendJson(res, 200, {
+      user: publicUser(updatedUser),
+      users: updatedUsers.map(publicUser),
+      message: "User saved successfully"
+    });
     return;
   }
 
@@ -232,8 +359,12 @@ async function handleApi(req, res, url) {
       sendJson(res, 404, { error: "User not found" });
       return;
     }
-    const adminCount = users.filter(u => u.role === "admin").length;
-    if (targetUser.role === "admin" && adminCount <= 1) {
+    if (String(currentUser.id) === userId) {
+      sendJson(res, 400, { error: "You cannot delete your own administrator account" });
+      return;
+    }
+    const remainingAdmins = users.filter(u => u.role === "admin" && String(u.id) !== userId).length;
+    if (targetUser.role === "admin" && remainingAdmins === 0) {
       sendJson(res, 400, { error: "At least one admin user is required" });
       return;
     }
@@ -280,6 +411,27 @@ async function handleApi(req, res, url) {
     const disabled = !!body.disabled;
     const allUsersForDisable = await getUsers();
     const targetUserDis = allUsersForDisable.find(u => String(u.id) === userId);
+    if (!targetUserDis) {
+      sendJson(res, 404, { error: "User not found" });
+      return;
+    }
+
+    if (disabled) {
+      if (String(currentUser.id) === userId) {
+        sendJson(res, 400, { error: "You cannot disable your own administrator account" });
+        return;
+      }
+      if (targetUserDis.role === "admin") {
+        const remainingActiveAdmins = allUsersForDisable.filter(u =>
+          u.role === "admin" && !u.disabled && String(u.id) !== userId
+        ).length;
+        if (remainingActiveAdmins === 0) {
+          sendJson(res, 400, { error: "At least one active administrator account is required" });
+          return;
+        }
+      }
+    }
+
     const success = await setUserDisabled(userId, disabled);
     if (!success) {
       sendJson(res, 404, { error: "User not found" });
@@ -389,15 +541,29 @@ async function initializeDatabase() {
 async function getUsers() {
   if (!dbPool) return readJson(USERS_FILE, []);
 
-  const [rows] = await dbPool.query(
-    "SELECT id, username, role, password_hash AS password, created_at AS createdAt FROM users ORDER BY username"
-  );
-  return rows.map(row => ({
-    ...row,
-    id: String(row.id),
-    createdAt: toIso(row.createdAt),
-    disabled: row.disabled ?? false
-  }));
+  try {
+    const [rows] = await dbPool.query(
+      "SELECT id, username, full_name AS fullName, role, password_hash AS password, disabled, created_at AS createdAt FROM users ORDER BY username"
+    );
+    return rows.map(row => ({
+      ...row,
+      id: String(row.id),
+      fullName: row.fullName || "",
+      createdAt: toIso(row.createdAt),
+      disabled: Boolean(row.disabled)
+    }));
+  } catch (err) {
+    const [rows] = await dbPool.query(
+      "SELECT id, username, role, password_hash AS password, created_at AS createdAt FROM users ORDER BY username"
+    );
+    return rows.map(row => ({
+      ...row,
+      id: String(row.id),
+      fullName: "",
+      createdAt: toIso(row.createdAt),
+      disabled: Boolean(row.disabled)
+    }));
+  }
 }
 
 function canEditRecords(user) {
@@ -420,11 +586,19 @@ async function insertUser(user) {
     return;
   }
 
-  const [result] = await dbPool.execute(
-    "INSERT INTO users (id, username, password_hash, role, created_at) VALUES (?, ?, ?, ?, ?)",
-    [user.id, user.username, user.password, user.role, mysqlDateTime(user.createdAt)]
-  );
-  user.id = String(result.insertId);
+  try {
+    const [result] = await dbPool.execute(
+      "INSERT INTO users (id, username, full_name, password_hash, role, disabled, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      [user.id, user.username, user.fullName || "", user.password, user.role, user.disabled ? 1 : 0, mysqlDateTime(user.createdAt)]
+    );
+    user.id = String(result.insertId);
+  } catch (err) {
+    const [result] = await dbPool.execute(
+      "INSERT INTO users (id, username, password_hash, role, created_at) VALUES (?, ?, ?, ?, ?)",
+      [user.id, user.username, user.password, user.role, mysqlDateTime(user.createdAt)]
+    );
+    user.id = String(result.insertId);
+  }
 }
 
 async function updateUserRole(userId, role) {
@@ -439,6 +613,65 @@ async function updateUserRole(userId, role) {
   await dbPool.execute("UPDATE users SET role = ? WHERE id = ?", [role, userId]);
 }
 
+// Update user full profile
+async function updateUser(userId, updates) {
+  if (!dbPool) {
+    const users = await readJson(USERS_FILE, []);
+    const user = users.find(u => String(u.id) === String(userId));
+    if (!user) return null;
+    if (updates.username !== undefined) user.username = updates.username;
+    if (updates.fullName !== undefined) user.fullName = updates.fullName;
+    if (updates.role !== undefined) user.role = updates.role;
+    if (updates.password !== undefined) user.password = updates.password;
+    if (updates.disabled !== undefined) user.disabled = updates.disabled;
+    await writeJson(USERS_FILE, users);
+    return user;
+  }
+
+  const fields = [];
+  const params = [];
+  if (updates.username !== undefined) {
+    fields.push("username = ?");
+    params.push(updates.username);
+  }
+  if (updates.fullName !== undefined) {
+    fields.push("full_name = ?");
+    params.push(updates.fullName);
+  }
+  if (updates.role !== undefined) {
+    fields.push("role = ?");
+    params.push(updates.role);
+  }
+  if (updates.password !== undefined) {
+    fields.push("password_hash = ?");
+    params.push(updates.password);
+  }
+  if (updates.disabled !== undefined) {
+    fields.push("disabled = ?");
+    params.push(updates.disabled ? 1 : 0);
+  }
+
+  if (fields.length) {
+    params.push(userId);
+    try {
+      await dbPool.execute(`UPDATE users SET ${fields.join(", ")} WHERE id = ?`, params);
+    } catch (err) {
+      const fallbackFields = [];
+      const fallbackParams = [];
+      if (updates.username !== undefined) { fallbackFields.push("username = ?"); fallbackParams.push(updates.username); }
+      if (updates.role !== undefined) { fallbackFields.push("role = ?"); fallbackParams.push(updates.role); }
+      if (updates.password !== undefined) { fallbackFields.push("password_hash = ?"); fallbackParams.push(updates.password); }
+      if (fallbackFields.length) {
+        fallbackParams.push(userId);
+        await dbPool.execute(`UPDATE users SET ${fallbackFields.join(", ")} WHERE id = ?`, fallbackParams);
+      }
+    }
+  }
+
+  const all = await getUsers();
+  return all.find(u => String(u.id) === String(userId)) || null;
+}
+
 // Delete a user
 async function deleteUser(userId) {
   if (!dbPool) {
@@ -449,7 +682,6 @@ async function deleteUser(userId) {
     await writeJson(USERS_FILE, users);
     return true;
   }
-  // MySQL implementation (assuming a 'disabled' column exists)
   const [result] = await dbPool.execute("DELETE FROM users WHERE id = ?", [userId]);
   return result.affectedRows > 0;
 }
@@ -670,8 +902,9 @@ function readBody(req) {
   });
 }
 
-async function createUser(username, password, role) {
+async function createUser(username, password, role, fullName) {
   username = String(username || "").trim();
+  fullName = String(fullName || "").trim();
   password = String(password || "");
 
   if (!username || password.length < 4) {
@@ -683,6 +916,7 @@ async function createUser(username, password, role) {
   return {
     id: USE_MYSQL ? null : crypto.randomUUID(),
     username,
+    fullName,
     role,
     password: hashPassword(password),
     disabled: false,
@@ -715,7 +949,9 @@ async function authenticate(req) {
   if (!payload) return null;
 
   const users = await getUsers();
-  return users.find(user => user.id === payload.id) || null;
+  const user = users.find(user => String(user.id) === String(payload.id));
+  if (!user || user.disabled) return null;
+  return user;
 }
 
 async function loginPayload(user) {
@@ -759,13 +995,14 @@ function base64Url(value) {
 }
 
 function publicUser(user) {
-    return {
-      id: user.id,
-      username: user.username,
-      role: user.role,
-      disabled: user.disabled,
-      createdAt: user.createdAt
-    };
+  return {
+    id: user.id,
+    username: user.username,
+    fullName: user.fullName || "",
+    role: user.role,
+    disabled: Boolean(user.disabled),
+    createdAt: user.createdAt
+  };
 }
 
 function emptyImages() {

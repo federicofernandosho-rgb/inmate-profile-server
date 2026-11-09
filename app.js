@@ -404,6 +404,12 @@ attachDateFieldCalendarBehavior(fields.dob);
 attachDateFieldCalendarBehavior(fields.statusDate);
 
 window.addEventListener("afterprint", () => {
+  // Restore dark-mode class if it was active before PDF generation stripped it
+  if (document.body.dataset.restoreDarkMode === "1") {
+    document.body.classList.add("dark-mode");
+  }
+  delete document.body.dataset.restoreDarkMode;
+
   document.body.classList.remove("printing");
   reportTemplate.innerHTML = "";
   const dynamicStyle = document.getElementById("dynamic-print-style");
@@ -2225,7 +2231,25 @@ function generatePdfReport() {
   `;
 
   document.body.classList.add("printing");
+
+  // ── PDF DARK-MODE ISOLATION ───────────────────────────────────────────────────
+  // Temporarily remove dark-mode from <body> for the duration of the print call.
+  // CSS @media print variable overrides are NOT sufficient because:
+  //   1. body.dark-mode has `background: ...gradient... !important` which wins
+  //      over the @media print background reset.
+  //   2. `color-scheme: dark` instructs the browser rendering engine itself to
+  //      use dark native controls — this cannot be undone with CSS alone.
+  // Removing the class before window.print() is the only fully reliable fix.
+  // The class (and its visual state) is restored immediately in afterprint.
+  const wasDarkMode = document.body.classList.contains("dark-mode");
+  if (wasDarkMode) {
+    document.body.classList.remove("dark-mode");
+  }
+
   window.print();
+  // Note: afterprint handler below restores dark-mode if it was active.
+  // Store the flag on the body element so afterprint can read it cross-scope.
+  document.body.dataset.restoreDarkMode = wasDarkMode ? "1" : "0";
 }
 // ── USER INTERFACE THEME ALTERATIONS ─────────────────────────────────────────
 function toggleDarkMode() {

@@ -1714,10 +1714,13 @@ body.dark-mode .audit-detail {
     margin: 0.5in !important;
   }
 
-  /* PDF ISOLATION: Reset ALL CSS custom properties to their original light-mode
-     values regardless of whether dark mode is currently active. This ensures that
-     any dark-mode CSS variable overrides on body.dark-mode do NOT bleed into the
-     printed/PDF output. */
+  /* PDF ISOLATION – DEFENCE IN DEPTH (safety net layer)
+     Primary fix: generatePdfReport() removes the dark-mode class from <body>
+     before window.print() and the afterprint handler restores it afterwards.
+     This block is a secondary CSS safety net that resets all CSS custom
+     properties to light-mode values in case the class is somehow still present
+     at print time (e.g. browser pre-print snapshot timing edge cases).
+     Both layers together guarantee the PDF always renders in light mode. */
   html,
   body,
   body.dark-mode {
@@ -1733,6 +1736,7 @@ body.dark-mode .audit-detail {
     --action-hover: #335c96 !important;
     --secondary: #f4f6f9 !important;
     --danger: #d14343 !important;
+    background: #ffffff !important;
   }
 
   html,

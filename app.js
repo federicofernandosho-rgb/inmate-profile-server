@@ -1813,6 +1813,22 @@ function generatePdfReport() {
   printStyle.id = "dynamic-print-style";
   printStyle.innerHTML = `
     @media print {
+      /* PDF ISOLATION: Force light-mode CSS variables so dark mode never bleeds
+         into the printed / PDF output */
+      html, body, body.dark-mode {
+        color-scheme: light !important;
+        --bg: #eef2f7 !important;
+        --panel: #ffffff !important;
+        --ink: #1f2937 !important;
+        --muted: #667085 !important;
+        --line: #d6d9e0 !important;
+        --field: #f8fafc !important;
+        --field-border: #d2d6dc !important;
+        --action: #3d70b2 !important;
+        --action-hover: #335c96 !important;
+        --secondary: #f4f6f9 !important;
+        --danger: #d14343 !important;
+      }
       html, body {
         background: #fff;
         margin: 0 !important;

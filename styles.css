@@ -35,16 +35,13 @@ body.dark-mode {
 
 body.dark-mode .app-header,
 body.dark-mode .workspace,
-body.dark-mode .login-card,
-body.dark-mode .modal-shell,
-body.dark-mode .login-field {
+body.dark-mode .modal-shell {
   background: rgba(30, 41, 59, 0.97) !important;
   color: var(--ink);
 }
 
-body.dark-mode .login-field {
-  border-color: var(--field-border);
-}
+/* LOGIN SCREEN ISOLATION: login-card and login-field are excluded from dark-mode
+   overrides so the login screen always renders in its original light-mode design */
 
 body.dark-mode input,
 body.dark-mode textarea,
@@ -52,6 +49,67 @@ body.dark-mode select {
   background: #0f172a;
   color: var(--ink);
   border-color: var(--field-border);
+}
+
+/* Re-lock login-screen inputs to light values regardless of dark mode */
+body.dark-mode #loginShell input,
+body.dark-mode #loginShell textarea,
+body.dark-mode #loginShell select {
+  background: #ffffff !important;
+  color: #1f2937 !important;
+  border-color: #d9ceca !important;
+}
+
+/* Full login screen isolation — force all login shell elements to light-mode
+   values so the login page is completely unaffected by dark mode */
+body.dark-mode #loginShell {
+  /* Reproduce the original light-mode body background behind the login card */
+  background:
+    radial-gradient(circle at top, rgba(255, 255, 255, 0.96), transparent 28%),
+    linear-gradient(180deg, #eef2f7, #d8e2ec) !important;
+  color: #1f2937 !important;
+}
+
+body.dark-mode #loginShell .login-card {
+  background: rgba(255, 255, 255, 0.98) !important;
+  color: #1f2937 !important;
+  border: none !important;
+  box-shadow: 0 28px 64px rgba(15, 23, 42, 0.12) !important;
+}
+
+body.dark-mode #loginShell .login-card h1,
+body.dark-mode #loginShell .login-card p,
+body.dark-mode #loginShell .login-card span,
+body.dark-mode #loginShell .login-card label {
+  color: #1f2937 !important;
+}
+
+body.dark-mode #loginShell .login-card p#loginIntro,
+body.dark-mode #loginShell .login-card p.message {
+  color: #667085 !important;
+}
+
+body.dark-mode #loginShell .login-field {
+  background: #f8fafc !important;
+  border-color: rgba(209, 213, 219, 0.9) !important;
+  color: #1f2937 !important;
+}
+
+body.dark-mode #loginShell .login-field span {
+  color: #1f2937 !important;
+}
+
+body.dark-mode #loginShell button[type="submit"] {
+  /* Keep the default blue gradient button on the login screen */
+  background: linear-gradient(180deg,
+      #6a9fd8 0%,
+      #4a7fc1 18%,
+      #3d70b2 40%,
+      #2d5a99 60%,
+      #3d70b2 78%,
+      #5a8ec8 100%) !important;
+  color: #ffffff !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35) !important;
 }
 
 body.dark-mode .session-status,
@@ -1656,6 +1714,27 @@ body.dark-mode .audit-detail {
     margin: 0.5in !important;
   }
 
+  /* PDF ISOLATION: Reset ALL CSS custom properties to their original light-mode
+     values regardless of whether dark mode is currently active. This ensures that
+     any dark-mode CSS variable overrides on body.dark-mode do NOT bleed into the
+     printed/PDF output. */
+  html,
+  body,
+  body.dark-mode {
+    color-scheme: light !important;
+    --bg: #eef2f7 !important;
+    --panel: #ffffff !important;
+    --ink: #1f2937 !important;
+    --muted: #667085 !important;
+    --line: #d6d9e0 !important;
+    --field: #f8fafc !important;
+    --field-border: #d2d6dc !important;
+    --action: #3d70b2 !important;
+    --action-hover: #335c96 !important;
+    --secondary: #f4f6f9 !important;
+    --danger: #d14343 !important;
+  }
+
   html,
   body {
     background: #ffffff !important;
@@ -2563,15 +2642,19 @@ body.dark-mode .popover-view-card-empty {
    DARK MODE LABEL & READONLY FIXES
    ========================================================== */
 
-/* Fixes labels, filter texts, and dialog headers in dark mode */
+/* Fixes labels, filter texts, and dialog headers in dark mode
+   Note: .login-field span inside #loginShell is intentionally excluded here
+   because login screen isolation rules above already enforce light-mode styling */
 body.dark-mode .field span,
 body.dark-mode .filter-item,
 body.dark-mode .audit-filters label,
-body.dark-mode .login-field span {
+body.dark-mode :not(#loginShell) > .login-field span {
   color: var(--ink) !important;
 }
 
-/* Fixes read-only input fields in dark mode so text stays legible */
+/* Fixes read-only input fields in dark mode so text stays legible
+   Note: login inputs (#loginUsername, #loginPassword) are excluded so the login
+   screen isolation rules above take full precedence */
 body.dark-mode.readonly-mode input:not(#loginUsername):not(#loginPassword),
 body.dark-mode.readonly-mode textarea,
 body.dark-mode.readonly-mode select {
@@ -2890,6 +2973,25 @@ body.dark-mode .history-summary-card {
     @bottom-center {
       content: element(print-footer);
     }
+  }
+
+  /* PDF ISOLATION: Reset ALL CSS custom properties to light-mode values so dark
+     mode variables never bleed into printed / PDF output */
+  html,
+  body,
+  body.dark-mode {
+    color-scheme: light !important;
+    --bg: #eef2f7 !important;
+    --panel: #ffffff !important;
+    --ink: #1f2937 !important;
+    --muted: #667085 !important;
+    --line: #d6d9e0 !important;
+    --field: #f8fafc !important;
+    --field-border: #d2d6dc !important;
+    --action: #3d70b2 !important;
+    --action-hover: #335c96 !important;
+    --secondary: #f4f6f9 !important;
+    --danger: #d14343 !important;
   }
 
   .print-footer {
